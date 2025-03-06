@@ -65,8 +65,6 @@ export class PersonnelController extends BaseController {
           photo: true,
           created_at: true,
           updated_at: true,
-          // Exclude password
-          password: false
         },
         orderBy: { created_at: 'desc' }
       })
@@ -104,9 +102,7 @@ export class PersonnelController extends BaseController {
           email: true,
           photo: true,
           created_at: true,
-          updated_at: true,
-          // Exclude password
-          password: false
+          updated_at: true
         }
       })
 
