@@ -4,6 +4,7 @@ import fastifyEnv from '@fastify/env'
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import prismaPlugin from './plugins/prisma'
 import authMiddleware from './middleware/auth.middleware'
+import permissionMiddleware from './middleware/permission.middleware'
 import routes from './routes'
 
 // Environmental schema
@@ -54,6 +55,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   
   // Register custom auth middleware
   await app.register(authMiddleware)
+  
+  // Register permission middleware
+  await app.register(permissionMiddleware)
   
   // Direct health and test routes
   app.get('/health', async () => {

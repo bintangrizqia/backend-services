@@ -208,6 +208,65 @@ npm run create-users
 
 This will create several test users with predefined credentials that you can use for testing.
 
+## Permission System
+
+The API implements a Django-like permission system with CRUD operations:
+
+### Permission Types
+
+Each model has four standard permissions:
+
+- **CREATE** - Permission to create new instances (e.g., `personnel.add_user`)
+- **READ** - Permission to view instances (e.g., `personnel.view_user`) 
+- **UPDATE** - Permission to modify instances (e.g., `personnel.change_user`)
+- **DELETE** - Permission to remove instances (e.g., `personnel.delete_user`)
+
+### User Roles
+
+- **Superuser** - Has all permissions implicitly
+- **Staff** - Users with administrative access
+- **Regular Users** - Permissions defined via groups
+
+### Setting Up Permissions
+
+To create default permissions and groups:
+
+```bash
+npm run seed:permissions
+```
+
+This will create:
+- Standard CRUD permissions for all models
+- An "Administrators" group with all permissions
+- A "Staff" group with read-only permissions
+
+### Checking Permissions in Code
+
+The middleware provides several ways to check permissions:
+
+```typescript
+// Check specific permission by codename
+fastify.hasPermission('personnel.view_user')
+
+// Check any of multiple permissions
+fastify.hasPermission(['personnel.view_user', 'personnel.change_user'])  
+
+// Check model permission using CRUD operations
+fastify.hasModelPermission('personnel.user', PermissionOperation.READ)
+
+// Check multiple operations on a model
+fastify.hasModelPermission('personnel.user', [
+  PermissionOperation.CREATE, 
+  PermissionOperation.UPDATE
+])
+
+// Check if user is a superuser
+fastify.isSuperuser
+
+// Check if user is staff
+fastify.isStaff
+```
+
 ## License
 
 ISC

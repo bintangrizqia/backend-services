@@ -13,13 +13,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Permission {
+  READ
+  DELETE
+  UPDATE
+  CREATE
+}
+
+enum Resource {
+  USER
+  PROJECT
+}
+
 model Personnels {
-  id         String   @id @default(cuid())
-  photo      String?
-  npp        String   @unique
-  name       String
-  email      String?
-  password   String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id                   String                 @id @default(cuid())
+  photo                String?
+  npp                  String                 @unique
+  name                 String
+  email                String?
+  password             String
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  is_superuser         Boolean                @default(false)
+  PersonnelGroups      PersonnelGroups[]
+  PersonnelPermissions PersonnelPermissions[]
+}
+
+model Groups {
+  id               String             @id @default(cuid())
+  name             String             @unique
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  GroupPermissions GroupPermissions[]
+  PersonnelGroups  PersonnelGroups[]
+}
+
+model GroupPermissions {
+  id         String     @id @default(cuid())
+  group_id   String
+  resource   Resource
+  permission Permission
+  created_at DateTime   @default(now())
+
+  group Groups @relation(fields: [group_id], references: [id])
+}
+
+model PersonnelGroups {
+  id           String   @id @default(cuid())
+  personnel_id String
+  group_id     String
+  created_at   DateTime @default(now())
+
+  personnel Personnels @relation(fields: [personnel_id], references: [id])
+  group     Groups     @relation(fields: [group_id], references: [id])
+}
+
+model PersonnelPermissions {
+  id           String     @id @default(cuid())
+  personnel_id String
+  resource     Resource
+  permission   Permission
+  created_at   DateTime   @default(now())
+
+  personnel Personnels @relation(fields: [personnel_id], references: [id])
 }

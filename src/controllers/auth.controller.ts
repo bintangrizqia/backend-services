@@ -50,15 +50,8 @@ export class AuthController extends BaseController {
         })
       }
 
-      // Create JWT payload
-      const payload = {
-        id: user.id,
-        npp: user.npp,
-        name: user.name
-      }
-
-      // Generate JWT token using custom function
-      const token = this.fastify.generateToken(payload)
+      // Generate JWT token with embedded permissions
+      const token = await this.fastify.generateToken(user.id)
 
       // Return user data and token
       return this.sendResponse(reply, {
@@ -66,7 +59,8 @@ export class AuthController extends BaseController {
           id: user.id,
           npp: user.npp,
           name: user.name,
-          email: user.email
+          email: user.email,
+          is_superuser: user.is_superuser
         },
         token
       })
@@ -133,33 +127,13 @@ export class AuthController extends BaseController {
         })
       }
 
-      // Ensure we have all required fields before responding
-      if (!user.npp || !user.name) {
-        // Fetch complete user data if middleware didn't provide it
-        const fullUserData = await this.prisma.personnels.findUnique({
-          where: { id: user.id },
-          select: {
-            id: true,
-            npp: true,
-            name: true,
-            email: true,
-            photo: true,
-            created_at: true,
-            updated_at: true
-          }
-        });
-        
-        if (!fullUserData) {
-          return reply.status(404).send({
-            error: 'Not Found',
-            message: 'User no longer exists'
-          });
-        }
-        
-        return this.sendResponse(reply, fullUserData);
+      // Include permissions in the response
+      const userData = {
+        ...user,
+        permissions: request.permissions
       }
       
-      return this.sendResponse(reply, user)
+      return this.sendResponse(reply, userData)
     } catch (error) {
       return this.handleError(error, reply, 'Failed to retrieve user information')
     }
