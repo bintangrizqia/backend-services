@@ -1,11 +1,17 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
 import bcrypt from 'bcrypt'
+import { Permission, Resource } from '@prisma/client'
 
 // Define request body types for type safety
 interface LoginRequest {
   npp: string
   password: string
+}
+
+interface PermissionItem {
+  resource: Resource
+  permission: Permission
 }
 
 interface RegisterRequest {
@@ -14,6 +20,9 @@ interface RegisterRequest {
   email?: string
   password: string
   photo?: string
+  is_superuser?: boolean
+  groups?: string[]
+  permissions?: PermissionItem[]
 }
 
 export class AuthController extends BaseController {
@@ -74,7 +83,16 @@ export class AuthController extends BaseController {
    */
   async register(request: FastifyRequest<{ Body: RegisterRequest }>, reply: FastifyReply) {
     try {
-      const { npp, name, email, password, photo } = request.body
+      const { 
+        npp, 
+        name, 
+        email, 
+        password, 
+        photo,
+        is_superuser = false,
+        groups = [],
+        permissions = []
+      } = request.body
 
       // Check if user already exists
       const existingUser = await this.prisma.personnels.findUnique({
@@ -92,19 +110,72 @@ export class AuthController extends BaseController {
       const salt = await bcrypt.genSalt(10)
       const hashedPassword = await bcrypt.hash(password, salt)
 
-      // Create new user
-      const newUser = await this.prisma.personnels.create({
-        data: {
-          npp,
-          name,
-          email,
-          password: hashedPassword,
-          photo
+      // Use transaction to ensure all operations succeed or fail together
+      const result = await this.prisma.$transaction(async (tx) => {
+        // Create new user
+        const newUser = await tx.personnels.create({
+          data: {
+            npp,
+            name,
+            email,
+            password: hashedPassword,
+            photo,
+            is_superuser
+          }
+        })
+
+        // Assign user to groups if provided
+        if (groups.length > 0) {
+          // Verify all groups exist
+          const existingGroups = await tx.groups.findMany({
+            where: { id: { in: groups } },
+            select: { id: true }
+          })
+
+          if (existingGroups.length !== groups.length) {
+            throw new Error('One or more group IDs are invalid')
+          }
+
+          // Create group assignments
+          await Promise.all(groups.map(groupId => 
+            tx.personnelGroups.create({
+              data: {
+                personnel_id: newUser.id,
+                group_id: groupId
+              }
+            })
+          ))
         }
+
+        // Add direct permissions if provided
+        if (permissions.length > 0) {
+          await Promise.all(permissions.map(perm =>
+            tx.personnelPermissions.create({
+              data: {
+                personnel_id: newUser.id,
+                resource: perm.resource,
+                permission: perm.permission
+              }
+            })
+          ))
+        }
+
+        // Return created user with relations
+        return tx.personnels.findUnique({
+          where: { id: newUser.id },
+          include: {
+            PersonnelGroups: {
+              include: {
+                group: true
+              }
+            },
+            PersonnelPermissions: true
+          }
+        })
       })
 
       // Remove password from response
-      const { password: _, ...userWithoutPassword } = newUser
+      const { password: _, ...userWithoutPassword } = result!
 
       return this.sendResponse(reply, userWithoutPassword, 201)
     } catch (error) {
