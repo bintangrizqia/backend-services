@@ -196,6 +196,18 @@ The main entities in the database are:
 2. Extend the BaseController class
 3. Implement your controller methods
 
+## Utility Scripts
+
+### Creating Dummy Users
+
+To create dummy test users in the database, run:
+
+```bash
+npm run create-users
+```
+
+This will create several test users with predefined credentials that you can use for testing.
+
 ## License
 
 ISC
