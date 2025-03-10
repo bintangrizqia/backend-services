@@ -63,7 +63,15 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       const user = await fastify.prisma.personnels.findUnique({
         where: { id: decoded.id },
         select: {
-          id: true
+          id: true,
+          npp: true,
+          name: true,
+          email: true,
+          photo: true,
+          created_at: true,
+          updated_at: true,
+          // Exclude password for security
+          password: false
         }
       })
       

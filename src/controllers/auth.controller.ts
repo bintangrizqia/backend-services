@@ -133,6 +133,32 @@ export class AuthController extends BaseController {
         })
       }
 
+      // Ensure we have all required fields before responding
+      if (!user.npp || !user.name) {
+        // Fetch complete user data if middleware didn't provide it
+        const fullUserData = await this.prisma.personnels.findUnique({
+          where: { id: user.id },
+          select: {
+            id: true,
+            npp: true,
+            name: true,
+            email: true,
+            photo: true,
+            created_at: true,
+            updated_at: true
+          }
+        });
+        
+        if (!fullUserData) {
+          return reply.status(404).send({
+            error: 'Not Found',
+            message: 'User no longer exists'
+          });
+        }
+        
+        return this.sendResponse(reply, fullUserData);
+      }
+      
       return this.sendResponse(reply, user)
     } catch (error) {
       return this.handleError(error, reply, 'Failed to retrieve user information')
