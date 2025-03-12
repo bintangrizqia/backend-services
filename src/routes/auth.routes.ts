@@ -3,6 +3,12 @@ import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { Type } from '@sinclair/typebox'
 import { AuthController } from '../controllers/auth.controller'
 
+declare module 'fastify' {
+  interface FastifyContextConfig {
+    authenticated?: boolean
+  }
+}
+
 const authRoutes: FastifyPluginAsync = async (fastify) => {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>()
   const authController = new AuthController(fastify)
@@ -10,6 +16,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Login endpoint
   server.post('/login', {
     schema: {
+      tags: ['auth'],
       body: Type.Object({
         npp: Type.String(),
         password: Type.String(),
@@ -31,6 +38,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Register endpoint
   server.post('/register', {
     schema: {
+      tags: ['auth'],
       body: Type.Object({
         npp: Type.String(),
         name: Type.String(),
@@ -91,6 +99,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       authenticated: true
     },
     schema: {
+      tags: ['auth'],
       response: {
         200: Type.Object({
           id: Type.String(),

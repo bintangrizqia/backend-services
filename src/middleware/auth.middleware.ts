@@ -130,6 +130,9 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       // Verify token
       const decoded = jwt.verify(token, jwtSecret) as JwtPayload
       
+      // Log decoded token for debugging
+      fastify.log.info(`Decoded token: ${JSON.stringify(decoded, null, 2)}`);
+      
       // Find user in database
       const user = await fastify.prisma.personnels.findUnique({
         where: { id: decoded.id },
@@ -156,15 +159,32 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
         })
       }
       
-      // Attach user to request
-      request.user = user
+      // Log user data for debugging
+      fastify.log.info(`User data from DB: ${JSON.stringify(user, null, 2)}`);
       
-      // Attach permissions from token to request for quick access
-      if (decoded.permissions) {
-        request.permissions = decoded.permissions
+      // Masalah utama di sini! Pastikan is_superuser dari database digunakan, bukan dari token
+      // Decode is_superuser sebagai boolean murni
+      request.user = {
+        ...user,
+        is_superuser: Boolean(user.is_superuser)
+      };
+      
+      // Debug log
+      fastify.log.info(`User authenticated: ${request.user.npp}, is_superuser=${request.user.is_superuser} (${typeof request.user.is_superuser})`);
+      
+      // Attach permissions directly from database for superuser, not from token
+      if (user.is_superuser) {
+        // Give superuser all permissions
+        request.permissions = Object.values(Resource).reduce((permissions, resource) => {
+          permissions[resource] = Object.values(Permission);
+          return permissions;
+        }, {} as { [key in Resource]: Permission[] });
+      } else if (decoded.permissions) {
+        // Use token permissions for regular users
+        request.permissions = decoded.permissions;
       }
       
-      // Authentication successful - continue to next handler
+      // Authentication successful
       
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
@@ -214,28 +234,32 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       throw new Error('User not found');
     }
     
-    // Get user permissions
-    const permissions = await getUserPermissions(userId);
+    // Get user permissionsth special attention to is_superuser
+    fastify.log.info(`Generating token for user ${user.npp} with is_superuser=${user.is_superuser}`);
     
     // Create JWT payload with permissions
+    const permissions = await getUserPermissions(userId);
+    
+    // Create JWT payload with permissions - ensure is_superuser is a boolean
     const payload = {
       id: user.id,
       npp: user.npp,
       name: user.name,
-      is_superuser: user.is_superuser,
+      is_superuser: Boolean(user.is_superuser),
       permissions
     };
+    fastify.log.info(`Token payload for user ${user.npp}: ${JSON.stringify(payload)}`);
     
-    // Generate and return token
+    // Generate token with longer expiration for easier testing
     return jwt.sign(payload, jwtSecret, { 
-      expiresIn: '1d' // Token expires in 1 day
+      expiresIn: '7d' // Extend to 7 days for testing
     });
   }
   
   // Register decorator functions
   fastify.decorate('authenticate', authenticate)
   fastify.decorate('generateToken', generateToken)
-  
+
   // Add hook to include security headers in responses
   fastify.addHook('onSend', async (request, reply) => {
     reply.header('X-Content-Type-Options', 'nosniff')

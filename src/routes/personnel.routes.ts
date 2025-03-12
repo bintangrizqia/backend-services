@@ -8,7 +8,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>()
   const personnelController = new PersonnelController(fastify)
 
-  // Secure all routes with JWT authentication
+  // Perbaikan urutan middleware hooks
   server.addHook('onRequest', fastify.authenticate)
   
   // Get all personnel
@@ -21,9 +21,24 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   server.get<{
     Querystring: GetPersonnelQuery
   }>('/', {
-      // Use the new hook-style permission check
-      preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.READ),
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing personnel list, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.PERSONNEL, Permission.READ)(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
       schema: {
+        tags: ['personnels'],
         querystring: Type.Object({
           page: Type.Optional(Type.Number({ minimum: 1 })),
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
@@ -63,6 +78,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/:id', {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.READ),
     schema: {
+      tags: ['personnels'],
       params: Type.Object({
         id: Type.String()
       }),
@@ -92,6 +108,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/', {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CREATE),
     schema: {
+      tags: ['personnels'],
       body: Type.Object({
         npp: Type.String(),
         name: Type.String(),
@@ -128,6 +145,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/:id', {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.UPDATE),
     schema: {
+      tags: ['personnels'],
       params: Type.Object({
         id: Type.String()
       }),
@@ -158,6 +176,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/:id', {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.DELETE),
     schema: {
+      tags: ['personnels'],
       params: Type.Object({
         id: Type.String()
       }),

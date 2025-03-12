@@ -31,15 +31,28 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
     permission: Permission | Permission[]
   ): Promise<boolean> => {
     try {
-      // If no user is authenticated, they have no permissions
+      // Tambahkan logging lebih detail
+      fastify.log.info(`===== PERMISSION CHECK =====`);
+      fastify.log.info(`Resource: ${resource}, Permission: ${permission}`);
+      
       if (!request.user) {
+        fastify.log.warn('No user found in request, denying permission');
         return false
       }
 
-      // If user is superuser, they have all permissions
-      if (request.user.is_superuser) {
-        return true
+      // Log user data in detail
+      fastify.log.info(`User data: ${JSON.stringify(request.user, null, 2)}`);
+      fastify.log.info(`is_superuser type: ${typeof request.user.is_superuser}`);
+      fastify.log.info(`is_superuser value: ${request.user.is_superuser}`);
+      
+      // Perbaikan kritis: super simple superuser check
+      if (request.user.is_superuser === true) {
+        fastify.log.info(`User ${request.user.npp} IS SUPERUSER - granting all permissions`);
+        return true;
       }
+      
+      // Tambahkan logging untuk memahami alur kode
+      fastify.log.info(`User ${request.user.npp} is NOT superuser, checking specific permissions`);
       
       const permissions = Array.isArray(permission) ? permission : [permission]
       
@@ -101,6 +114,12 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
       reply: FastifyReply, 
       done: (err?: Error) => void
     ) {
+      // Skip permission check completely for superusers
+      if (request.user && request.user.is_superuser === true) {
+        fastify.log.info(`SUPERUSER detected: ${request.user.npp} - skipping permission check`);
+        return done();
+      }
+
       // If the request is already unauthorized, don't proceed with permission check
       if (reply.statusCode === 401 || reply.sent === true) {
         return done();
@@ -108,6 +127,9 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
 
       // Make sure we have a user object
       if (!request.user) {
+        // Log it for debugging
+        fastify.log.warn('No user object found in permission check');
+        
         // This shouldn't happen because authentication should run first,
         // but just in case, mark as unauthorized
         reply.code(401).send({
@@ -118,6 +140,9 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
         // End the request lifecycle
         return done(new Error('Authentication required'));
       }
+      
+      // Add debug logging
+      fastify.log.info(`Permission check hook for ${resource}.${permission} - User: ${request.user.npp}`);
       
       hasPermission(request, resource, permission)
         .then(allowed => {
@@ -140,6 +165,7 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
           }
           
           // Continue with request if allowed
+          fastify.log.info(`Permission granted for user ${request.user.npp} to access ${resource}`);
           return done();
         })
         .catch(err => {

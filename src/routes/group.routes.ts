@@ -13,6 +13,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
   
   server.get('/', {
     schema: {
+      tags: ['groups'],
       querystring: Type.Object({
         page: Type.Optional(Type.Number({ minimum: 1 })),
         limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
@@ -42,6 +43,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   server.get('/:id', {
     schema: {
+      tags: ['groups'],
       params: Type.Object({
         id: Type.String()
       }),
@@ -68,6 +70,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   server.post('/', {
     schema: {
+      tags: ['groups'],
       body: Type.Object({
         name: Type.String(),
         permissions: Type.Optional(Type.Array(
@@ -100,6 +103,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   server.put('/:id', {
     schema: {
+      tags: ['groups'],
       params: Type.Object({
         id: Type.String()
       }),
@@ -135,6 +139,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   server.delete('/:id', {
     schema: {
+      tags: ['groups'],
       params: Type.Object({
         id: Type.String()
       }),
@@ -147,6 +152,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   server.get('/:groupId/permissions', {
     schema: {
+      tags: ['groups'],
       params: Type.Object({
         groupId: Type.String()
       }),
@@ -167,6 +173,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   server.post('/:groupId/permissions', {
     schema: {
+      tags: ['groups'],
       params: Type.Object({
         groupId: Type.String()
       }),
@@ -189,6 +196,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
 
   server.delete('/:groupId/permissions/:permissionId', {
     schema: {
+      tags: ['groups'],
       params: Type.Object({
         groupId: Type.String(),
         permissionId: Type.String()
