@@ -21,7 +21,7 @@ enum Permission {
 }
 
 enum Resource {
-  USER
+  PERSONNEL
   PROJECT
 }
 
