@@ -41,7 +41,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         groups: Type.Optional(Type.Array(Type.String())),
         permissions: Type.Optional(Type.Array(
           Type.Object({
-            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
+            resource: Type.Enum({ PERSONNEL: 'PERSONNEL', PROJECT: 'PROJECT' }),
             permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' })
           })
         ))
@@ -74,7 +74,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             Type.Object({
               id: Type.String(),
               personnel_id: Type.String(),
-              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
+              resource: Type.Enum({ PERSONNEL: 'PERSONNEL', PROJECT: 'PROJECT' }),
               permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' }),
               created_at: Type.String()
             })

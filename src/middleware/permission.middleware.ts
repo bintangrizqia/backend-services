@@ -2,26 +2,22 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import fp from 'fastify-plugin'
 import { Permission, Resource } from '@prisma/client'
 
-// Extend FastifyInstance type to include our permission methods
+// Extend FastifyRequest to include a flag for permission errors
 declare module 'fastify' {
+  interface FastifyRequest {
+    permissionError?: boolean;
+  }
+
   interface FastifyInstance {
     hasPermission: (
       request: FastifyRequest,
       resource: Resource,
       permission: Permission | Permission[]
     ) => Promise<boolean>
-    requirePermission: (
-      request: FastifyRequest,
-      reply: FastifyReply,
-      resource: Resource,
-      permission: Permission | Permission[]
-    ) => Promise<boolean>
     checkPermission: (
-      request: FastifyRequest,
-      reply: FastifyReply,
       resource: Resource,
       permission: Permission | Permission[]
-    ) => Promise<void>
+    ) => (request: FastifyRequest, reply: FastifyReply, done: (err?: Error) => void) => void
   }
 }
 
@@ -49,20 +45,19 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
       
       // First check JWT token embedded permissions (faster than DB query)
       if (request.permissions && request.permissions[resource]) {
-        const hasAllPermissions = permissions.some(p => 
+        const hasPermissions = permissions.some(p => 
           request.permissions![resource]!.includes(p)
         )
         
-        if (hasAllPermissions) {
+        if (hasPermissions) {
           return true
         }
+        
+        fastify.log.info(`Token permissions check failed: User ${request.user.npp}, Resource ${resource}`)
       }
 
       const userId = request.user.id
 
-      // Fall back to database check if JWT doesn't contain the permissions
-      // (this handles cases where permissions might have been updated since token was issued)
-      
       // Check for direct user permissions
       const directPermissionsCount = await fastify.prisma.personnelPermissions.count({
         where: {
@@ -94,43 +89,47 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
   }
 
   /**
-   * Require a permission, returning true if allowed, false otherwise
+   * Create a hook function that checks permissions and can be used with preHandler
+   * This uses Fastify's synchronous done callback to ensure the request is blocked
    */
-  const requirePermission = async (
-    request: FastifyRequest,
-    reply: FastifyReply,
+  const checkPermission = (
     resource: Resource,
     permission: Permission | Permission[]
-  ): Promise<boolean> => {
-    const allowed = await hasPermission(request, resource, permission)
-    if (!allowed) {
-      return false
-    }
-    return true
-  }
-
-  /**
-   * Middleware to check permission and return 403 if not allowed
-   */
-  const checkPermission = async (
-    request: FastifyRequest,
-    reply: FastifyReply,
-    resource: Resource,
-    permission: Permission | Permission[]
-  ): Promise<void> => {
-    const allowed = await hasPermission(request, resource, permission)
-    if (!allowed) {
-      reply.status(403).send({
-        error: 'Forbidden',
-        message: 'You do not have permission to access this resource'
-      })
-    }
+  ) => {
+    return function permissionCheckHook(
+      request: FastifyRequest, 
+      reply: FastifyReply, 
+      done: (err?: Error) => void
+    ) {
+      hasPermission(request, resource, permission)
+        .then(allowed => {
+          if (!allowed) {
+            // Block the request
+            reply.status(403).send({
+              error: 'Forbidden',
+              message: `You do not have permission to access this resource (${resource})`
+            });
+            // Use a custom error to stop the request chain
+            done(new Error('Permission denied'));
+          } else {
+            // Continue with the request
+            done();
+          }
+        })
+        .catch(err => {
+          fastify.log.error('Permission check error:', err);
+          reply.status(500).send({
+            error: 'Internal Server Error',
+            message: 'An error occurred while checking permissions'
+          });
+          done(err);
+        });
+    };
   }
 
   // Add decorators to Fastify instance
-  fastify.decorate('hasPermission', hasPermission)
-  fastify.decorate('requirePermission', requirePermission)
-  fastify.decorate('checkPermission', checkPermission)
+  fastify.decorate('hasPermission', hasPermission);
+  fastify.decorate('checkPermission', checkPermission);
 })
 
 export default permissionMiddleware

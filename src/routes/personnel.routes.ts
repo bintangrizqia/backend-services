@@ -2,22 +2,33 @@ import { FastifyPluginAsync } from 'fastify'
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { Type } from '@sinclair/typebox'
 import { PersonnelController } from '../controllers/personnel.controller'
+import { Resource, Permission } from '@prisma/client'
 
 const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>()
   const personnelController = new PersonnelController(fastify)
 
   // Secure all routes with JWT authentication
-  server.addHook('preHandler', fastify.authenticate)
+  server.addHook('onRequest', fastify.authenticate)
   
-  // Get all personnel - make sure this is registered correctly
-  server.get('/', {
-    schema: {
-      querystring: Type.Object({
-        page: Type.Optional(Type.Number({ minimum: 1 })),
-        limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
-        search: Type.Optional(Type.String())
-      }),
+  // Get all personnel
+  interface GetPersonnelQuery {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }
+  
+  server.get<{
+    Querystring: GetPersonnelQuery
+  }>('/', {
+      // Use the new hook-style permission check
+      preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.READ),
+      schema: {
+        querystring: Type.Object({
+          page: Type.Optional(Type.Number({ minimum: 1 })),
+          limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
+          search: Type.Optional(Type.String())
+        }),
       response: {
         200: Type.Object({
           data: Type.Array(
@@ -38,13 +49,19 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
             totalPages: Type.Number()
           })
         })
-      },
-      security: [{ bearerAuth: [] }]
+      }
     }
   }, personnelController.getAllPersonnel.bind(personnelController))
 
   // Get personnel by ID
-  server.get('/:id', {
+  interface GetPersonnelParams {
+    id: string;
+  }
+
+  server.get<{
+    Params: GetPersonnelParams
+  }>('/:id', {
+    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.READ),
     schema: {
       params: Type.Object({
         id: Type.String()
@@ -60,12 +77,20 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
           updated_at: Type.String(),
         })
       },
-      security: [{ bearerAuth: [] }]
     }
   }, personnelController.getPersonnelById.bind(personnelController))
 
   // Create personnel
-  server.post('/', {
+  server.post<{
+    Body: {
+      npp: string;
+      name: string;
+      email?: string;
+      password: string;
+      photo?: string;
+    }
+  }>('/', {
+    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CREATE),
     schema: {
       body: Type.Object({
         npp: Type.String(),
@@ -85,12 +110,23 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
           updated_at: Type.String(),
         })
       },
-      security: [{ bearerAuth: [] }]
     }
   }, personnelController.createPersonnel.bind(personnelController))
 
   // Update personnel
-  server.put('/:id', {
+  interface UpdatePersonnelRequest {
+    npp?: string;
+    name?: string;
+    email?: string;
+    password?: string;
+    photo?: string;
+  }
+
+  server.put<{
+    Params: GetPersonnelParams;
+    Body: UpdatePersonnelRequest;
+  }>('/:id', {
+    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.UPDATE),
     schema: {
       params: Type.Object({
         id: Type.String()
@@ -113,12 +149,14 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
           updated_at: Type.String(),
         })
       },
-      security: [{ bearerAuth: [] }]
     }
   }, personnelController.updatePersonnel.bind(personnelController))
 
   // Delete personnel
-  server.delete('/:id', {
+  server.delete<{
+    Params: GetPersonnelParams
+  }>('/:id', {
+    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.DELETE),
     schema: {
       params: Type.Object({
         id: Type.String()
@@ -126,7 +164,6 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
       response: {
         204: Type.Null()
       },
-      security: [{ bearerAuth: [] }]
     }
   }, personnelController.deletePersonnel.bind(personnelController))
 }

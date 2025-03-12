@@ -73,10 +73,10 @@ const defaultGroups: GroupData[] = [
     name: "Administrators",
     permissions: [
       // Full access to users
-      { resource: "USER", permission: "CREATE" },
-      { resource: "USER", permission: "READ" },
-      { resource: "USER", permission: "UPDATE" },
-      { resource: "USER", permission: "DELETE" },
+      { resource: "PERSONNEL", permission: "CREATE" },
+      { resource: "PERSONNEL", permission: "READ" },
+      { resource: "PERSONNEL", permission: "UPDATE" },
+      { resource: "PERSONNEL", permission: "DELETE" },
       // Full access to projects
       { resource: "PROJECT", permission: "CREATE" },
       { resource: "PROJECT", permission: "READ" },
@@ -93,7 +93,7 @@ const defaultGroups: GroupData[] = [
       { resource: "PROJECT", permission: "UPDATE" },
       { resource: "PROJECT", permission: "DELETE" },
       // Read-only access to users
-      { resource: "USER", permission: "READ" },
+      { resource: "PERSONNEL", permission: "READ" },
     ]
   },
   {
