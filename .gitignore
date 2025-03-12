@@ -37,3 +37,6 @@ prisma/.env
 
 # Testing
 coverage/
+
+
+package-lock.json
