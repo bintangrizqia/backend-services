@@ -99,8 +99,21 @@ export async function buildApp(): Promise<FastifyInstance> {
       deepLinking: true,
       tagsSorter: 'alpha',
       operationsSorter: 'alpha',
-      defaultModelsExpandDepth: 0
-    }
+      defaultModelsExpandDepth: 0,
+      persistAuthorization: true, // Simpan token di localStorage
+      tryItOutEnabled: true,
+      displayRequestDuration: true,
+      syntaxHighlight: {
+        activate: true,
+        theme: 'agate'
+      }
+    },
+    staticCSP: false, // Disable Content-Security-Policy for Swagger UI
+    // Kustomisasi UI dengan token handling yang lebih baik
+    transformSpecification: (swaggerObject) => {
+      return swaggerObject;
+    },
+    transformSpecificationClone: true
   })
 
   // Register other plugins
@@ -169,6 +182,37 @@ export async function buildApp(): Promise<FastifyInstance> {
   }, async () => {
     return { message: 'Test route working!' }
   })
+
+  // Tambahkan endpoint untuk melakukan autentikasi dari Swagger UI
+  app.get('/debug/user', {
+    preHandler: [app.authenticate],
+    schema: {
+      tags: ['utility'],
+      security: [{ bearerAuth: [] }],
+      description: 'Cek status autentikasi pengguna saat ini',
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            user: { type: 'object' },
+            permissions: { type: 'object' },
+            isSuperuser: { type: 'boolean' },
+            tokenInfo: { type: 'object' }
+          }
+        }
+      }
+    },
+    handler: async (request, reply) => {
+      return {
+        user: request.user,
+        permissions: request.permissions,
+        isSuperuser: request.user?.is_superuser === true,
+        tokenInfo: {
+          headers: request.headers.authorization ? 'JWT token present' : 'No JWT token'
+        }
+      };
+    }
+  });
 
   // Register main routes
   await app.register(routes)
