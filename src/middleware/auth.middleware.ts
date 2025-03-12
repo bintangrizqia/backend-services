@@ -105,7 +105,10 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       const authHeader = request.headers.authorization
       
       if (!authHeader) {
-        return reply.status(401).send({
+        // Instead of sending response directly, set status code and attach error info
+        reply.status(401)
+        return reply.send({
+          statusCode: 401,
           error: 'Unauthorized',
           message: 'Authentication required - missing Authorization header'
         })
@@ -114,7 +117,9 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       // Extract token from Authorization header
       const parts = authHeader.split(' ')
       if (parts.length !== 2 || parts[0] !== 'Bearer') {
-        return reply.status(401).send({
+        reply.status(401)
+        return reply.send({
+          statusCode: 401,
           error: 'Unauthorized',
           message: 'Authentication format invalid - use Bearer scheme'
         })
@@ -143,7 +148,9 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       })
       
       if (!user) {
-        return reply.status(401).send({
+        reply.status(401)
+        return reply.send({
+          statusCode: 401,
           error: 'Unauthorized',
           message: 'User not found or inactive'
         })
@@ -157,23 +164,31 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
         request.permissions = decoded.permissions
       }
       
+      // Authentication successful - continue to next handler
+      
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
-        return reply.status(401).send({
+        reply.status(401)
+        return reply.send({
+          statusCode: 401,
           error: 'Unauthorized',
           message: 'Invalid token'
         })
       }
       
       if (error instanceof jwt.TokenExpiredError) {
-        return reply.status(401).send({
+        reply.status(401)
+        return reply.send({
+          statusCode: 401,
           error: 'Unauthorized',
           message: 'Token expired'
         })
       }
       
       fastify.log.error(error)
-      return reply.status(500).send({
+      reply.status(500)
+      return reply.send({
+        statusCode: 500,
         error: 'Internal Server Error',
         message: 'Authentication error'
       })

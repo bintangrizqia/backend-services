@@ -101,28 +101,55 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
       reply: FastifyReply, 
       done: (err?: Error) => void
     ) {
+      // If the request is already unauthorized, don't proceed with permission check
+      if (reply.statusCode === 401 || reply.sent === true) {
+        return done();
+      }
+
+      // Make sure we have a user object
+      if (!request.user) {
+        // This shouldn't happen because authentication should run first,
+        // but just in case, mark as unauthorized
+        reply.code(401).send({
+          statusCode: 401,
+          error: 'Unauthorized',
+          message: 'Authentication required'
+        });
+        // End the request lifecycle
+        return done(new Error('Authentication required'));
+      }
+      
       hasPermission(request, resource, permission)
         .then(allowed => {
           if (!allowed) {
-            // Block the request
-            reply.status(403).send({
+            // Critical change: Use a custom error to force Fastify to stop processing
+            const err = new Error('Permission denied');
+            
+            // Log the permission denial
+            fastify.log.warn(`Permission denied: User ${request.user.npp} tried to access ${resource} without permission`);
+            
+            // Send the 403 Forbidden response
+            reply.code(403).send({
+              statusCode: 403,
               error: 'Forbidden',
               message: `You do not have permission to access this resource (${resource})`
             });
-            // Use a custom error to stop the request chain
-            done(new Error('Permission denied'));
-          } else {
-            // Continue with the request
-            done();
+            
+            // Important: Pass an error to done to ensure the request chain stops
+            return done(err);
           }
+          
+          // Continue with request if allowed
+          return done();
         })
         .catch(err => {
           fastify.log.error('Permission check error:', err);
-          reply.status(500).send({
+          reply.code(500).send({
+            statusCode: 500,
             error: 'Internal Server Error',
             message: 'An error occurred while checking permissions'
           });
-          done(err);
+          return done(err);
         });
     };
   }

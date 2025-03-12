@@ -59,6 +59,39 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register permission middleware
   await app.register(permissionMiddleware)
   
+  // Add a catch-all error handler specifically for permission errors
+  app.setErrorHandler((error, request, reply) => {
+    app.log.error(`Error: ${error.message}`);
+    
+    // Check if the error is from our permission middleware
+    if (error.message === 'Permission denied') {
+      if (!reply.sent) {
+        reply.status(403).send({
+          error: 'Forbidden',
+          message: 'You do not have permission to access this resource'
+        });
+      }
+      return;
+    }
+    
+    // For authentication errors
+    if (error.message.includes('Authentication') || 
+        error.message.includes('Unauthorized') ||
+        error.message.includes('token')) {
+      reply.status(401).send({
+        error: 'Unauthorized',
+        message: 'Authentication required'
+      });
+      return;
+    }
+    
+    // Default error handling
+    reply.status(500).send({
+      error: 'Internal Server Error',
+      message: 'An unexpected error occurred'
+    });
+  });
+  
   // Direct health and test routes
   app.get('/health', async () => {
     return { status: 'ok', timestamp: new Date() }
