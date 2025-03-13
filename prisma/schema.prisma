@@ -25,18 +25,36 @@ enum Resource {
   PROJECT
 }
 
+enum TypeProject {
+  STRETCH_ACTIVITY
+  TRAINING
+  KPI_DIVISI
+}
+
+enum ActivityType {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  OTHER
+}
+
 model Personnels {
-  id                   String                 @id @default(cuid())
-  photo                String?
-  npp                  String                 @unique
-  name                 String
-  email                String?
-  password             String
-  created_at           DateTime               @default(now())
-  updated_at           DateTime               @updatedAt
-  is_superuser         Boolean                @default(false)
-  PersonnelGroups      PersonnelGroups[]
-  PersonnelPermissions PersonnelPermissions[]
+  id                     String                   @id @default(cuid())
+  photo                  String?
+  npp                    String                   @unique
+  name                   String
+  email                  String?
+  password               String
+  created_at             DateTime                 @default(now())
+  updated_at             DateTime                 @updatedAt
+  is_superuser           Boolean                  @default(false)
+  PersonnelGroups        PersonnelGroups[]
+  PersonnelPermissions   PersonnelPermissions[]
+  PersonnelOrganizations PersonnelOrganizations[]
+  ActivityLogs           ActivityLogs[]
 }
 
 model Groups {
@@ -76,4 +94,61 @@ model PersonnelPermissions {
   created_at   DateTime   @default(now())
 
   personnel Personnels @relation(fields: [personnel_id], references: [id])
+}
+
+model Organizations {
+  id          String   @id @default(cuid())
+  parent_id   String?
+  name        String
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  // Tambahkan relasi ke parent organization
+  parent Organizations? @relation("OrganizationHierarchy", fields: [parent_id], references: [id], onDelete: SetNull)
+
+  // Tambahkan relasi untuk children (sub-organizations)
+  children               Organizations[]          @relation("OrganizationHierarchy")
+  PersonnelOrganizations PersonnelOrganizations[]
+}
+
+model PersonnelOrganizations {
+  id              String   @id @default(cuid())
+  personnel_id    String
+  organization_id String
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  personnel    Personnels    @relation(fields: [personnel_id], references: [id])
+  organization Organizations @relation(fields: [organization_id], references: [id])
+}
+
+model Programs {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model Projects {
+  id String @id @default(cuid())
+}
+
+model ActivityLogs {
+  id            String       @id @default(cuid())
+  personnel_id  String?
+  url           String
+  method        String
+  description   String?
+  ip_address    String?
+  user_agent    String?
+  payload       Json?
+  status_code   Int?
+  activity_type ActivityType @default(OTHER)
+  created_at    DateTime     @default(now())
+
+  // Optional relation to personnel (may be null for anonymous/unauthenticated access)
+  personnel Personnels? @relation(fields: [personnel_id], references: [id], onDelete: SetNull)
 }

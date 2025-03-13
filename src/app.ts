@@ -19,6 +19,7 @@ import swaggerUI from '@fastify/swagger-ui'
 import prismaPlugin from './plugins/prisma'
 import authMiddleware from './middleware/auth.middleware'
 import permissionMiddleware from './middleware/permission.middleware'
+import activityLoggerMiddleware from './middleware/activity-logger.middleware'
 import routes from './routes'
 
 // Environmental schema
@@ -144,6 +145,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   
   // Register permission middleware
   await app.register(permissionMiddleware)
+  
+  // Register activity logger middleware after auth middleware
+  await app.register(activityLoggerMiddleware)
   
   // Add a catch-all error handler specifically for permission errors
   app.setErrorHandler((error, request, reply) => {
