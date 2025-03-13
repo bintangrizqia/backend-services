@@ -13,10 +13,11 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>()
   const authController = new AuthController(fastify)
 
-  // Login endpoint
+  // Login endpoint - tidak memerlukan token
   server.post('/login', {
     schema: {
       tags: ['auth'],
+      description: 'Autentikasi pengguna dengan NPP dan password',
       body: Type.Object({
         npp: Type.String(),
         password: Type.String(),
@@ -32,13 +33,16 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
           token: Type.String()
         })
       }
+      // Login tidak memerlukan security definition
     }
   }, authController.login.bind(authController))
 
-  // Register endpoint
+  // Register endpoint - memerlukan token
   server.post('/register', {
     schema: {
       tags: ['auth'],
+      description: 'Mendaftarkan pengguna baru',
+      security: [{ bearerAuth: [] }], // Tambahkan ini
       body: Type.Object({
         npp: Type.String(),
         name: Type.String(),
@@ -92,7 +96,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, authController.register.bind(authController))
 
-  // Get current user endpoint - use custom authenticate middleware
+  // Get current user endpoint - memerlukan token
   server.get('/me', {
     preHandler: [fastify.authenticate],
     config: {
@@ -100,6 +104,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     },
     schema: {
       tags: ['auth'],
+      description: 'Mendapatkan informasi pengguna yang terautentikasi',
+      security: [{ bearerAuth: [] }], // Tambahkan ini
       response: {
         200: Type.Object({
           id: Type.String(),

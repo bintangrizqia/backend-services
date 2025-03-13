@@ -39,6 +39,8 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
       },
       schema: {
         tags: ['personnels'],
+        description: 'Mendapatkan daftar semua personel',
+        security: [{ bearerAuth: [] }],
         querystring: Type.Object({
           page: Type.Optional(Type.Number({ minimum: 1 })),
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
@@ -79,6 +81,8 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.READ),
     schema: {
       tags: ['personnels'],
+      description: 'Mendapatkan personel berdasarkan ID',
+      security: [{ bearerAuth: [] }],
       params: Type.Object({
         id: Type.String()
       }),
@@ -109,6 +113,8 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CREATE),
     schema: {
       tags: ['personnels'],
+      description: 'Membuat personel baru',
+      security: [{ bearerAuth: [] }],
       body: Type.Object({
         npp: Type.String(),
         name: Type.String(),
@@ -146,6 +152,8 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.UPDATE),
     schema: {
       tags: ['personnels'],
+      description: 'Memperbarui informasi personel',
+      security: [{ bearerAuth: [] }],
       params: Type.Object({
         id: Type.String()
       }),
@@ -177,6 +185,8 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.DELETE),
     schema: {
       tags: ['personnels'],
+      description: 'Menghapus personel',
+      security: [{ bearerAuth: [] }],
       params: Type.Object({
         id: Type.String()
       }),

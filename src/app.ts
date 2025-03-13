@@ -82,6 +82,7 @@ export async function buildApp(): Promise<FastifyInstance> {
           in: 'header'
         }
       },
+      security: [{ bearerAuth: [] }], // Apply security globally
       tags: [
         { name: 'auth', description: 'Authentication endpoints' },
         { name: 'personnels', description: 'Personnel management operations' },
@@ -91,29 +92,40 @@ export async function buildApp(): Promise<FastifyInstance> {
     }
   })
 
-  // Register Swagger UI with improved configuration
+  // Konfigurasi Swagger UI yang lebih sederhana
   await app.register(swaggerUI, {
     routePrefix: '/docs',
     uiConfig: {
-      docExpansion: 'none', // Collapsed by default
-      deepLinking: true,
-      tagsSorter: 'alpha',
-      operationsSorter: 'alpha',
-      defaultModelsExpandDepth: 0,
-      persistAuthorization: true, // Simpan token di localStorage
+      persistAuthorization: true,
       tryItOutEnabled: true,
       displayRequestDuration: true,
-      syntaxHighlight: {
-        activate: true,
-        theme: 'agate'
+      filter: true,
+      withCredentials: true,
+      docExpansion: 'list',
+      defaultModelRendering: 'model',
+      showCommonExtensions: true,
+      showExtensions: true,
+      // Penyesuaian untuk token
+      onComplete: function() {
+        // Token akan disimpan di localStorage saat halaman dimuat
+        console.log("Swagger UI loaded");
       }
     },
-    staticCSP: false, // Disable Content-Security-Policy for Swagger UI
-    // Kustomisasi UI dengan token handling yang lebih baik
-    transformSpecification: (swaggerObject) => {
-      return swaggerObject;
-    },
-    transformSpecificationClone: true
+    initOAuth: {
+      clientId: "swagger-ui",
+      usePkceWithAuthorizationCodeGrant: false,
+      useBasicAuthenticationWithAccessCodeGrant: false
+    }
+  })
+
+  // Add cache control headers for Swagger UI
+  app.addHook('preHandler', (req, res, done) => {
+    if (req.url.startsWith('/docs')) {
+      res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.header('Pragma', 'no-cache');
+      res.header('Expires', '0');
+    }
+    done();
   })
 
   // Register other plugins
@@ -169,7 +181,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Direct health and test routes
   app.get('/health', {
     schema: {
-      tags: ['utility']
+      tags: ['utility'],
+      description: 'Memeriksa status API',
+      security: [{ bearerAuth: [] }] // Tambahkan ini
     }
   }, async () => {
     return { status: 'ok', timestamp: new Date() }
@@ -177,41 +191,38 @@ export async function buildApp(): Promise<FastifyInstance> {
   
   app.get('/test', {
     schema: {
-      tags: ['utility']
+      tags: ['utility'],
+      description: 'Endpoint pengujian',
+      security: [{ bearerAuth: [] }] // Tambahkan ini
     }
   }, async () => {
     return { message: 'Test route working!' }
   })
 
-  // Tambahkan endpoint untuk melakukan autentikasi dari Swagger UI
+  // Tambahkan endpoint untuk verifikasi token
   app.get('/debug/user', {
     preHandler: [app.authenticate],
     schema: {
       tags: ['utility'],
       security: [{ bearerAuth: [] }],
-      description: 'Cek status autentikasi pengguna saat ini',
+      description: 'Cek status autentikasi dan token',
       response: {
         200: {
           type: 'object',
           properties: {
             user: { type: 'object' },
             permissions: { type: 'object' },
-            isSuperuser: { type: 'boolean' },
-            tokenInfo: { type: 'object' }
+            isSuperuser: { type: 'boolean' }
           }
         }
       }
-    },
-    handler: async (request, reply) => {
-      return {
-        user: request.user,
-        permissions: request.permissions,
-        isSuperuser: request.user?.is_superuser === true,
-        tokenInfo: {
-          headers: request.headers.authorization ? 'JWT token present' : 'No JWT token'
-        }
-      };
     }
+  }, async (request, reply) => {
+    return {
+      user: request.user,
+      permissions: request.permissions,
+      isSuperuser: request.user?.is_superuser === true
+    };
   });
 
   // Register main routes
