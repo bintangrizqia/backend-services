@@ -124,16 +124,28 @@ model PersonnelOrganizations {
 }
 
 model Programs {
-  id          String   @id @default(cuid())
-  code        String   @unique
+  id          String     @id @default(cuid())
+  code        String     @unique
   name        String
   description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+  Projects    Projects[]
 }
 
 model Projects {
-  id String @id @default(cuid())
+  id           String      @id @default(cuid())
+  type_project TypeProject
+  due_date     DateTime
+  program_id   String
+  target       String
+  unit         String
+  information  String?
+  note         String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+
+  program Programs @relation(fields: [program_id], references: [id])
 }
 
 model ActivityLogs {
