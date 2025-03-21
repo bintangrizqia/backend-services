@@ -50,7 +50,6 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
         200: Type.Object({
           data: Type.Array(
             Type.Object({
-              id: Type.String(),
               npp: Type.String(),
               name: Type.String(),
               email: Type.Union([Type.String(), Type.Null()]),
@@ -72,23 +71,22 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Get personnel by ID
   interface GetPersonnelParams {
-    id: string;
+    npp: string;
   }
 
   server.get<{
     Params: GetPersonnelParams
-  }>('/:id', {
+  }>('/:npp', {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.READ),
     schema: {
       tags: ['personnels'],
-      description: 'Mendapatkan personel berdasarkan ID',
+      description: 'Mendapatkan personel berdasarkan NPP',
       security: [{ bearerAuth: [] }],
       params: Type.Object({
-        id: Type.String()
+        npp: Type.String()
       }),
       response: {
         200: Type.Object({
-          id: Type.String(),
           npp: Type.String(),
           name: Type.String(),
           email: Type.Union([Type.String(), Type.Null()]),
@@ -124,7 +122,6 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
       }),
       response: {
         201: Type.Object({
-          id: Type.String(),
           npp: Type.String(),
           name: Type.String(),
           email: Type.Union([Type.String(), Type.Null()]),
@@ -148,14 +145,14 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   server.put<{
     Params: GetPersonnelParams;
     Body: UpdatePersonnelRequest;
-  }>('/:id', {
+  }>('/:npp', {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.UPDATE),
     schema: {
       tags: ['personnels'],
       description: 'Memperbarui informasi personel',
       security: [{ bearerAuth: [] }],
       params: Type.Object({
-        id: Type.String()
+        npp: Type.String()
       }),
       body: Type.Object({
         npp: Type.Optional(Type.String()),
@@ -166,7 +163,6 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
       }),
       response: {
         200: Type.Object({
-          id: Type.String(),
           npp: Type.String(),
           name: Type.String(),
           email: Type.Union([Type.String(), Type.Null()]),
@@ -181,14 +177,14 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   // Delete personnel
   server.delete<{
     Params: GetPersonnelParams
-  }>('/:id', {
+  }>('/:npp', {
     preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.DELETE),
     schema: {
       tags: ['personnels'],
       description: 'Menghapus personel',
       security: [{ bearerAuth: [] }],
       params: Type.Object({
-        id: Type.String()
+        npp: Type.String()
       }),
       response: {
         204: Type.Null()

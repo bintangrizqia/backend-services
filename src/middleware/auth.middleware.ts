@@ -45,7 +45,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
     try {
       // Check if user is superuser first
       const user = await fastify.prisma.personnels.findUnique({
-        where: { id: userId },
+        where: { npp: userId },
         select: { is_superuser: true }
       });
       
@@ -135,9 +135,8 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       
       // Find user in database
       const user = await fastify.prisma.personnels.findUnique({
-        where: { id: decoded.id },
+        where: { npp: decoded.npp },
         select: {
-          id: true,
           npp: true,
           name: true,
           email: true,
@@ -221,9 +220,8 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
   const generateToken = async (userId: string): Promise<string> => {
     // Get user basic info
     const user = await fastify.prisma.personnels.findUnique({
-      where: { id: userId },
+      where: { npp: userId },
       select: {
-        id: true,
         npp: true,
         name: true,
         is_superuser: true
@@ -242,7 +240,6 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
     
     // Create JWT payload with permissions - ensure is_superuser is a boolean
     const payload = {
-      id: user.id,
       npp: user.npp,
       name: user.name,
       is_superuser: Boolean(user.is_superuser),

@@ -42,19 +42,23 @@ enum ActivityType {
 }
 
 model Personnels {
-  id                     String                   @id @default(cuid())
-  photo                  String?
-  npp                    String                   @unique
-  name                   String
-  email                  String?
-  password               String
-  created_at             DateTime                 @default(now())
-  updated_at             DateTime                 @updatedAt
-  is_superuser           Boolean                  @default(false)
-  PersonnelGroups        PersonnelGroups[]
-  PersonnelPermissions   PersonnelPermissions[]
-  PersonnelOrganizations PersonnelOrganizations[]
-  ActivityLogs           ActivityLogs[]
+  npp                  String                 @id
+  unit_id              Int?
+  position_id          Int?
+  photo                String?
+  eselon               Int                    @default(5)
+  name                 String
+  email                String?
+  password             String
+  created_at           DateTime               @default(now())
+  updated_at           DateTime               @updatedAt
+  is_superuser         Boolean                @default(false)
+  PersonnelGroups      PersonnelGroups[]
+  PersonnelPermissions PersonnelPermissions[]
+  ActivityLogs         ActivityLogs[]
+
+  unit     Units?     @relation(fields: [unit_id], references: [id])
+  position Positions? @relation(fields: [position_id], references: [id])
 }
 
 model Groups {
@@ -82,7 +86,7 @@ model PersonnelGroups {
   group_id     String
   created_at   DateTime @default(now())
 
-  personnel Personnels @relation(fields: [personnel_id], references: [id])
+  personnel Personnels @relation(fields: [personnel_id], references: [npp])
   group     Groups     @relation(fields: [group_id], references: [id])
 }
 
@@ -93,34 +97,7 @@ model PersonnelPermissions {
   permission   Permission
   created_at   DateTime   @default(now())
 
-  personnel Personnels @relation(fields: [personnel_id], references: [id])
-}
-
-model Organizations {
-  id          String   @id @default(cuid())
-  parent_id   String?
-  name        String
-  description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  // Tambahkan relasi ke parent organization
-  parent Organizations? @relation("OrganizationHierarchy", fields: [parent_id], references: [id], onDelete: SetNull)
-
-  // Tambahkan relasi untuk children (sub-organizations)
-  children               Organizations[]          @relation("OrganizationHierarchy")
-  PersonnelOrganizations PersonnelOrganizations[]
-}
-
-model PersonnelOrganizations {
-  id              String   @id @default(cuid())
-  personnel_id    String
-  organization_id String
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-
-  personnel    Personnels    @relation(fields: [personnel_id], references: [id])
-  organization Organizations @relation(fields: [organization_id], references: [id])
+  personnel Personnels @relation(fields: [personnel_id], references: [npp])
 }
 
 model Programs {
@@ -162,5 +139,32 @@ model ActivityLogs {
   created_at    DateTime     @default(now())
 
   // Optional relation to personnel (may be null for anonymous/unauthenticated access)
-  personnel Personnels? @relation(fields: [personnel_id], references: [id], onDelete: SetNull)
+  personnel Personnels? @relation(fields: [personnel_id], references: [npp])
+}
+
+model Units {
+  id         Int      @id
+  parent_id  Int?
+  name       String
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  // Update the self-relation with proper onDelete behavior
+  unit      Units?  @relation("UnitHierarchy", fields: [parent_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  sub_units Units[] @relation("UnitHierarchy")
+
+  Positions  Positions[]
+  Personnels Personnels[]
+}
+
+model Positions {
+  id         Int          @id
+  unit_id    Int?
+  name       String
+  active     Boolean      @default(true)
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+  unit       Units?       @relation(fields: [unit_id], references: [id])
+  Personnels Personnels[]
 }

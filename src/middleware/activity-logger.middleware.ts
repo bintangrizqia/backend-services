@@ -110,19 +110,19 @@ const activityLoggerMiddleware = fp(async (fastify: FastifyInstance) => {
       }
       
       // Create the activity log
-      await fastify.prisma.activityLogs.create({
-        data: {
-          personnel_id: user?.id || null,
-          url,
-          method,
-          description,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-          payload: payload ? JSON.stringify(payload) : Prisma.JsonNull,
-          status_code: statusCode,
-          activity_type: activityType,
-        }
-      });
+      // await fastify.prisma.activityLogs.create({
+      //   data: {
+      //     personnel_id: user?.npp || null,
+      //     url,
+      //     method,
+      //     description,
+      //     ip_address: ipAddress,
+      //     user_agent: userAgent,
+      //     payload: payload ? JSON.stringify(payload) : Prisma.JsonNull,
+      //     status_code: statusCode,
+      //     activity_type: activityType,
+      //   }
+      // });
       
     } catch (error) {
       fastify.log.error(`Failed to log activity: ${error}`);

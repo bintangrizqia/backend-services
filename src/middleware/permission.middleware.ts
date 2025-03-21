@@ -69,7 +69,7 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
         fastify.log.info(`Token permissions check failed: User ${request.user.npp}, Resource ${resource}`)
       }
 
-      const userId = request.user.id
+      const userId = request.user.npp
 
       // Check for direct user permissions
       const directPermissionsCount = await fastify.prisma.personnelPermissions.count({

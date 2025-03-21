@@ -60,12 +60,11 @@ export class AuthController extends BaseController {
       }
 
       // Generate JWT token with embedded permissions
-      const token = await this.fastify.generateToken(user.id)
+      const token = await this.fastify.generateToken(user.npp)
 
       // Return user data and token
       return this.sendResponse(reply, {
         user: {
-          id: user.id,
           npp: user.npp,
           name: user.name,
           email: user.email,
@@ -140,7 +139,7 @@ export class AuthController extends BaseController {
           await Promise.all(groups.map(groupId => 
             tx.personnelGroups.create({
               data: {
-                personnel_id: newUser.id,
+                personnel_id: newUser.npp,
                 group_id: groupId
               }
             })
@@ -152,7 +151,7 @@ export class AuthController extends BaseController {
           await Promise.all(permissions.map(perm =>
             tx.personnelPermissions.create({
               data: {
-                personnel_id: newUser.id,
+                personnel_id: newUser.npp,
                 resource: perm.resource,
                 permission: perm.permission
               }
@@ -162,7 +161,7 @@ export class AuthController extends BaseController {
 
         // Return created user with relations
         return tx.personnels.findUnique({
-          where: { id: newUser.id },
+          where: { npp: newUser.npp },
           include: {
             PersonnelGroups: {
               include: {

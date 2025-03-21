@@ -25,7 +25,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       response: {
         200: Type.Object({
           user: Type.Object({
-            id: Type.String(),
             npp: Type.String(),
             name: Type.String(),
             email: Type.Union([Type.String(), Type.Null()]),
@@ -60,7 +59,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       }),
       response: {
         201: Type.Object({
-          id: Type.String(),
           npp: Type.String(),
           name: Type.String(),
           email: Type.Union([Type.String(), Type.Null()]),
@@ -108,7 +106,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       security: [{ bearerAuth: [] }], // Tambahkan ini
       response: {
         200: Type.Object({
-          id: Type.String(),
           npp: Type.String(),
           name: Type.String(),
           email: Type.Union([Type.String(), Type.Null()]),

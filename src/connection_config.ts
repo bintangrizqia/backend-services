@@ -1,0 +1,7 @@
+export default {
+    DATABASE_HRIS_HOST: "192.168.11.52",
+    DATABASE_HRIS_PORT: 5432,
+    DATABASE_HRIS_USER: "dandi",
+    DATABASE_HRIS_PASSWORD: "dandi123!",
+    DATABASE_HRIS_NAME: "payroll_db"
+}

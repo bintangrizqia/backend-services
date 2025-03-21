@@ -20,7 +20,7 @@ interface UpdatePersonnelRequest {
 }
 
 interface GetPersonnelParams {
-  id: string
+  npp: string
 }
 
 interface GetPersonnelQuery {
@@ -58,7 +58,6 @@ export class PersonnelController extends BaseController {
         skip,
         take: limit,
         select: {
-          id: true,
           npp: true,
           name: true,
           email: true,
@@ -91,12 +90,11 @@ export class PersonnelController extends BaseController {
    */
   async getPersonnelById(request: FastifyRequest<{ Params: GetPersonnelParams }>, reply: FastifyReply) {
     try {
-      const { id } = request.params
+      const { npp } = request.params
 
       const personnel = await this.prisma.personnels.findUnique({
-        where: { id },
+        where: { npp },
         select: {
-          id: true,
           npp: true,
           name: true,
           email: true,
@@ -170,12 +168,12 @@ export class PersonnelController extends BaseController {
     reply: FastifyReply
   ) {
     try {
-      const { id } = request.params
+      const { npp } = request.params
       const updateData = { ...request.body }
 
       // Check if personnel exists
       const personnel = await this.prisma.personnels.findUnique({
-        where: { id }
+        where: { npp }
       })
 
       if (!personnel) {
@@ -207,7 +205,7 @@ export class PersonnelController extends BaseController {
 
       // Update personnel
       const updatedPersonnel = await this.prisma.personnels.update({
-        where: { id },
+        where: { npp },
         data: updateData
       })
 
@@ -225,11 +223,11 @@ export class PersonnelController extends BaseController {
    */
   async deletePersonnel(request: FastifyRequest<{ Params: GetPersonnelParams }>, reply: FastifyReply) {
     try {
-      const { id } = request.params
+      const { npp } = request.params
 
       // Check if personnel exists
       const personnel = await this.prisma.personnels.findUnique({
-        where: { id }
+        where: { npp }
       })
 
       if (!personnel) {
@@ -241,7 +239,7 @@ export class PersonnelController extends BaseController {
 
       // Delete personnel
       await this.prisma.personnels.delete({
-        where: { id }
+        where: { npp }
       })
 
       return reply.status(204).send()

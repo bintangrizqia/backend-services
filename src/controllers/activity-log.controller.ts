@@ -61,7 +61,6 @@ export class ActivityLogController extends BaseController {
         include: {
           personnel: {
             select: {
-              id: true,
               npp: true,
               name: true
             }
@@ -95,7 +94,6 @@ export class ActivityLogController extends BaseController {
         include: {
           personnel: {
             select: {
-              id: true,
               npp: true,
               name: true
             }

@@ -56,7 +56,6 @@ const activityLogRoutes: FastifyPluginAsync = async (fastify) => {
               created_at: Type.String(),
               personnel: Type.Union([
                 Type.Object({
-                  id: Type.String(),
                   npp: Type.String(),
                   name: Type.String()
                 }),
@@ -108,7 +107,6 @@ const activityLogRoutes: FastifyPluginAsync = async (fastify) => {
           created_at: Type.String(),
           personnel: Type.Union([
             Type.Object({
-              id: Type.String(),
               npp: Type.String(),
               name: Type.String()
             }),
