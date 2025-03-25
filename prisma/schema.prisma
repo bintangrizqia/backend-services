@@ -50,6 +50,7 @@ model Personnels {
   name                 String
   email                String?
   password             String
+  active               Boolean                @default(true)
   created_at           DateTime               @default(now())
   updated_at           DateTime               @updatedAt
   is_superuser         Boolean                @default(false)
