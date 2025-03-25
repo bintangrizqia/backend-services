@@ -58,8 +58,12 @@ model Personnels {
   PersonnelPermissions PersonnelPermissions[]
   ActivityLogs         ActivityLogs[]
 
-  unit     Units?     @relation(fields: [unit_id], references: [id])
-  position Positions? @relation(fields: [position_id], references: [id])
+  unit                                 Units?                                 @relation(fields: [unit_id], references: [id])
+  position                             Positions?                             @relation(fields: [position_id], references: [id])
+  PerformanceManagementPlanTransaction PerformanceManagementPlanTransaction[]
+
+  transactions_as_target PerformanceManagementPlanTransaction[] @relation("PersonnelTarget")
+  transactions_as_source PerformanceManagementPlanTransaction[] @relation("PersonnelSource")
 }
 
 model Groups {
@@ -168,4 +172,104 @@ model Positions {
   updated_at DateTime     @updatedAt
   unit       Units?       @relation(fields: [unit_id], references: [id])
   Personnels Personnels[]
+
+  // Add relations for transactions
+  transactions_as_target PerformanceManagementPlanTransaction[] @relation("PositionTarget")
+  transactions_as_source PerformanceManagementPlanTransaction[] @relation("PositionSource")
+}
+
+model ProjectManagementType {
+  id         String   @id @default(cuid())
+  nama       String
+  keterangan String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  PerformanceManagementPlan PerformanceManagementPlan[]
+}
+
+model ProjectManagementPlanProgram {
+  id           String   @id @default(cuid())
+  nama         String
+  description  String?
+  tahun        Int
+  created_by   String?
+  created_date DateTime
+  kode_program String
+  active       Int      @default(0)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  PerformanceManagementPlan PerformanceManagementPlan[]
+}
+
+model PerformanceManagementPlan {
+  id                            String   @id @default(cuid())
+  key                           String
+  nama                          String
+  tagret                        String
+  satuan                        String
+  status_project_kpi            String
+  status_approved               Int
+  description                   String?
+  created_by                    String?
+  tahun                         Int
+  project_management_type_id    String
+  owner                         String
+  project_management_program_id String
+  catatan                       String?
+  created_at                    DateTime @default(now())
+  updated_at                    DateTime @updatedAt
+
+  project_management_type              ProjectManagementType                  @relation(fields: [project_management_type_id], references: [id])
+  program                              ProjectManagementPlanProgram           @relation(fields: [project_management_program_id], references: [id])
+  PerformanceManagementPlanTransaction PerformanceManagementPlanTransaction[]
+}
+
+model PerformanceManagementPlanTransaction {
+  id                                                String    @id @default(cuid())
+  personnel_tujuan                                  String
+  code_position_target                              Int
+  performance_management_plan_id                    String
+  performance_management_plan_transaction_id        String?
+  status_approved                                   Boolean
+  realisasi                                         Boolean
+  status_realisasi                                  Boolean
+  keterangan                                        String?
+  personnel_dari                                    String
+  code_position_from                                Int
+  batas_pengerjaan                                  DateTime
+  created_by                                        String
+  created_date                                      DateTime  @default(now())
+  updated_by                                        String?
+  updated_date                                      DateTime?
+  tahun                                             Int
+  activity_project                                  String?
+  target_activity                                   String?
+  satuan_activity                                   String?
+  realisasi_atasan_pembuat_activity                 Boolean?
+  deskripsi                                         String?
+  status_active_project                             Boolean?
+  status_active_realisasi                           Boolean?
+  project_management_program_id                     String?
+  realisasi_atasan_pembuat_activity_prosentase      Float?
+  realisasi_pribadi_prosentase                      Float?
+  catatan                                           String?
+  realisasi_pribadi_prosentase_asli                 Float?
+  realisasi_atasan_pembuat_activity_prosentase_asli Float?
+  modified_by                                       String?
+  modified_date                                     DateTime?
+
+  project PerformanceManagementPlan              @relation(fields: [performance_management_plan_id], references: [id])
+  parent  PerformanceManagementPlanTransaction?  @relation("ChildTransaction", fields: [performance_management_plan_transaction_id], references: [id], map: "PMPTransaction_parent_fkey")
+  child   PerformanceManagementPlanTransaction[] @relation("ChildTransaction", map: "PMPTransaction_child_fkey")
+
+  personnel_t Personnels @relation("PersonnelTarget", fields: [personnel_tujuan], references: [npp])
+  personnel_d Personnels @relation("PersonnelSource", fields: [personnel_dari], references: [npp])
+
+  // Add relations to Positions
+  position_target Positions   @relation("PositionTarget", fields: [code_position_target], references: [id])
+  position_source Positions   @relation("PositionSource", fields: [code_position_from], references: [id])
+  Personnels      Personnels? @relation(fields: [personnelsNpp], references: [npp])
+  personnelsNpp   String?
 }
