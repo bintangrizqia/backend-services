@@ -137,7 +137,7 @@ async function createUser(userData: UserData): Promise<string | null> {
 
     if (existingUser) {
       console.log(`⚠️  User with NPP ${userData.npp} already exists, skipping...`);
-      return existingUser.id;
+      return existingUser.npp;
     }
 
     // Hash the password
@@ -156,8 +156,8 @@ async function createUser(userData: UserData): Promise<string | null> {
       }
     });
 
-    console.log(`✅ Created user: ${userData.name} (${userData.npp}) with ID: ${newUser.id}`);
-    return newUser.id;
+    console.log(`✅ Created user: ${userData.name} (${userData.npp}) with ID: ${newUser.npp}`);
+    return newUser.npp;
   } catch (error) {
     console.error(`❌ Failed to create user ${userData.name} (${userData.npp}):`, error);
     return null;

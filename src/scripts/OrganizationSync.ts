@@ -29,12 +29,14 @@ async function fetchOrganizations() {
             update: { 
                 name: row.nama_unit,
                 active: row.status_aktif_unit === 1,
+                parent_id: row.parent_unit
                 // Don't update parent_id yet
             },
             create: {
                 id: row.kode_unit,
                 name: row.nama_unit,
                 active: row.status_aktif_unit === 1,
+                parent_id: row.parent_unit
                 // Don't set parent_id yet
             }
         });
@@ -132,7 +134,9 @@ async function fetchPersonnels() {
 }
 
 (async () => {
+    console.log('Prepare Fetch Organization')
     await fetchOrganizations()
+    console.log('Success Fetch Organization')
     await fetchPosition()
     await fetchPersonnels()
     console.log('Sync completed')
