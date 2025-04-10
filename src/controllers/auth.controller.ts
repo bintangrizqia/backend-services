@@ -44,7 +44,7 @@ export class AuthController extends BaseController {
 
       // Check if user exists
       if (!user) {
-        return reply.status(401).send({
+        return reply.status(404).send({
           error: 'Authentication failed',
           message: 'Invalid NPP or password'
         })
@@ -53,7 +53,7 @@ export class AuthController extends BaseController {
       // Compare passwords
       const isPasswordValid = await bcrypt.compare(password, user.password)
       if (!isPasswordValid) {
-        return reply.status(401).send({
+        return reply.status(404).send({
           error: 'Authentication failed',
           message: 'Invalid NPP or password'
         })
