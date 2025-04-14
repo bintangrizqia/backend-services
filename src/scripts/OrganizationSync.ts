@@ -19,7 +19,7 @@ import bcrypt from 'bcrypt'
  * @throws {Error} If database connection or query fails
  */
 async function fetchOrganizations() {
-    const query = `SELECT kode_unit, id_type_unit, nama_unit, parent_unit, status_aktif_unit FROM master_unit`
+    const query = `SELECT kode_unit, id_type_unit, nama_unit, parent_unit, status_aktif_unit FROM master_unit ORDER BY kode_unit ASC`
     const results = await HRISDBPool.query(query)
 
     // First pass: Create all units without parent relationships
@@ -29,14 +29,14 @@ async function fetchOrganizations() {
             update: { 
                 name: row.nama_unit,
                 active: row.status_aktif_unit === 1,
-                parent_id: row.parent_unit
+                // parent_id: row.parent_units
                 // Don't update parent_id yet
             },
             create: {
                 id: row.kode_unit,
                 name: row.nama_unit,
                 active: row.status_aktif_unit === 1,
-                parent_id: row.parent_unit
+                // parent_id: row.parent_unit
                 // Don't set parent_id yet
             }
         });
@@ -78,33 +78,34 @@ async function fetchOrganizations() {
  * position records with name, unit_id, and active status.
  */
 async function fetchPosition() {
-    const query = `SELECT kode_jabatan, nama_jabatan, id_type_jabatan, kode_unit FROM master_jabatan`
+    const query = `SELECT kode_jabatan, nama_jabatan, id_type_jabatan, kode_unit, status_aktif_jabatan FROM master_jabatan ORDER BY kode_jabatan ASC`
     const results = await HRISDBPool.query(query)
 
-    results.rows.forEach(async (row) => {
-        await DB.positions.upsert({
-            where: {
-                id: row.kode_jabatan,
-            },
+    const positionUpserts = results.rows.map(row =>
+        DB.positions.upsert({
+            where: { id: row.kode_jabatan },
             create: {
                 id: row.kode_jabatan,
                 name: row.nama_jabatan,
                 unit_id: row.kode_unit,
-                active: row.status_aktif_jabatan === 1
+                active: row.status_aktif_jabatan === 1,
             },
             update: {
                 name: row.nama_jabatan,
                 unit_id: row.kode_unit,
-                active: row.status_aktif_jabatan === 1
+                active: row.status_aktif_jabatan === 1,
             },
         })
-    })
+    );
+
+    await Promise.all(positionUpserts); // Ensures all inserts are done
 }
 
 
 
+
 async function fetchPersonnels() {
-    const query = `SELECT npp, nama_lengkap, kode_unit, kode_jabatan, email_intranet FROM master_personil`
+    const query = `SELECT npp, nama_lengkap, kode_unit, kode_jabatan, email_intranet FROM master_personil ORDER BY npp ASC`
     const results = await HRISDBPool.query(query)
     const salt = await bcrypt.genSalt(10)
 
@@ -116,17 +117,17 @@ async function fetchPersonnels() {
             create: {
                 npp: row.npp,
                 name: row.nama_lengkap,
-                position_id: row.kode_jabatan,
+                position_id: row.kode_jabatan || undefined,
                 eselon: row.kode_eselon,
                 password: await bcrypt.hash('initial01!', salt),
-                unit_id: row.kode_unit,
+                unit_id: row.kode_unit || undefined,
                 email: row.email_intranet
             },
             update: {
                 name: row.nama_lengkap,
-                position_id: row.kode_jabatan,
+                position_id: row.kode_jabatan || undefined,
                 eselon: row.kode_eselon,
-                unit_id: row.kode_unit,
+                unit_id: row.kode_unit || undefined,
                 email: row.email_intranet
             },
         })
@@ -134,10 +135,10 @@ async function fetchPersonnels() {
 }
 
 (async () => {
-    console.log('Prepare Fetch Organization')
     await fetchOrganizations()
     console.log('Success Fetch Organization')
-    await fetchPosition()
+    
+    await fetchPosition() // Must finish before the next step!
     await fetchPersonnels()
-    console.log('Sync completed')
-})
+    
+})()

@@ -23,6 +23,7 @@ enum Permission {
 enum Resource {
   PERSONNEL
   PROJECT
+  ORGANIZATION
 }
 
 enum TypeProject {
