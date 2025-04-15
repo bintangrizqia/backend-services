@@ -31,7 +31,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
         
         // Regular users go through permission check
         await new Promise<void>((resolve, reject) => {
-          fastify.checkPermission(Resource.PERSONNEL, Permission.READ)(request, reply, (err) => {
+          fastify.checkPermission(Resource.PERSONNEL, Permission.CAN_READ_PERSONNEL)(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
           });
@@ -77,7 +77,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   server.get<{
     Params: GetPersonnelParams
   }>('/:npp', {
-    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.READ),
+    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CAN_READ_PERSONNEL),
     schema: {
       tags: ['personnels'],
       description: 'Mendapatkan personel berdasarkan NPP',
@@ -108,7 +108,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
       photo?: string;
     }
   }>('/', {
-    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CREATE),
+    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CAN_CREATE_PERSONNEL),
     schema: {
       tags: ['personnels'],
       description: 'Membuat personel baru',
@@ -146,7 +146,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
     Params: GetPersonnelParams;
     Body: UpdatePersonnelRequest;
   }>('/:npp', {
-    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.UPDATE),
+    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CAN_UPDATE_PERSONNEL),
     schema: {
       tags: ['personnels'],
       description: 'Memperbarui informasi personel',
@@ -178,7 +178,7 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   server.delete<{
     Params: GetPersonnelParams
   }>('/:npp', {
-    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.DELETE),
+    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CAN_DELETE_PERSONNEL),
     schema: {
       tags: ['personnels'],
       description: 'Menghapus personel',

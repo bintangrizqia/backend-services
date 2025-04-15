@@ -57,8 +57,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
             Type.Object({
               id: Type.String(),
               group_id: Type.String(),
-              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
-              permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' }),
+              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
+              permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
               created_at: Type.String()
             })
           )
@@ -75,8 +75,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         name: Type.String(),
         permissions: Type.Optional(Type.Array(
           Type.Object({
-            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
-            permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' })
+            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
+            permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
           })
         ))
       }),
@@ -90,8 +90,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
             Type.Object({
               id: Type.String(),
               group_id: Type.String(),
-              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
-              permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' }),
+              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
+              permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
               created_at: Type.String()
             })
           )
@@ -111,8 +111,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         name: Type.Optional(Type.String()),
         permissions: Type.Optional(Type.Array(
           Type.Object({
-            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
-            permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' })
+            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
+            permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
           })
         ))
       }),
@@ -126,8 +126,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
             Type.Object({
               id: Type.String(),
               group_id: Type.String(),
-              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
-              permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' }),
+              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
+              permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
               created_at: Type.String()
             })
           )
@@ -161,8 +161,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
           Type.Object({
             id: Type.String(),
             group_id: Type.String(),
-            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
-            permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' }),
+            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
+            permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
             created_at: Type.String()
           })
         )
@@ -178,15 +178,15 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         groupId: Type.String()
       }),
       body: Type.Object({
-        resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
-        permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' })
+        resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
+        permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
       }),
       response: {
         201: Type.Object({
           id: Type.String(),
           group_id: Type.String(),
-          resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT' }),
-          permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' }),
+          resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
+          permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
           created_at: Type.String()
         })
       },

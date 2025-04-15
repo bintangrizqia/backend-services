@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
 import { Prisma } from '@prisma/client'
 
-interface GetOrganzationQuery {
+interface GetOrganizationQuery {
   page?: number
   limit?: number
   search?: string
@@ -13,7 +13,7 @@ export class OrganizationController extends BaseController {
     super(fastify)
   }
 
-  async getAllGroups(request: FastifyRequest<{ Querystring: GetOrganzationQuery }>, reply: FastifyReply) {
+  async getAllOrganizations(request: FastifyRequest<{ Querystring: GetOrganizationQuery }>, reply: FastifyReply) {
     try {
       const { page = 1, limit = 10, search } = request.query
       const skip = (page - 1) * limit
