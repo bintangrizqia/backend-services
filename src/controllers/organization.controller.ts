@@ -8,6 +8,12 @@ interface GetOrganizationQuery {
   search?: string
 }
 
+  // Get organizaiton by ID
+interface GetOrganizationParams {
+  id: number;
+}
+
+
 export class OrganizationController extends BaseController {
   constructor(fastify: FastifyInstance) {
     super(fastify)
@@ -46,4 +52,45 @@ export class OrganizationController extends BaseController {
       return this.handleError(error, reply, 'Failed to retrieve units')
     }
   }
+
+  
+    /**
+   * Get personnel by ID
+   */
+    async getOrganizationById(request: FastifyRequest<{ Params: GetOrganizationParams }>, reply: FastifyReply) {
+      try {
+        const { id } = request.params
+  
+        const organization = await this.prisma.units.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            name: true,
+            unit: {
+              select: {
+                id: true,
+                name: true,
+                created_at: true,
+                updated_at: true
+              }
+            },
+            created_at: true,
+            updated_at: true
+          }
+        })
+  
+        if (!organization) {
+          return reply.status(404).send({
+            error: 'Not Found',
+            message: 'Organization not found'
+          })
+        }
+  
+        return this.sendResponse(reply, organization)
+      } catch (error) {
+        return this.handleError(error, reply, 'Failed to retrieve personnel')
+      }
+    }
 }
+
+

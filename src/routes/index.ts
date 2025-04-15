@@ -3,6 +3,7 @@ import authRoutes from './auth.routes'
 import personnelRoutes from './personnel.routes'
 import groupRoutes from './group.routes'
 import activityLogRoutes from './activity-log.routes'
+import organizationRoutes from './organization.routes'
 
 const routes: FastifyPluginAsync = async (fastify, options) => {
   // Auth routes
@@ -18,6 +19,11 @@ const routes: FastifyPluginAsync = async (fastify, options) => {
   // Group routes
   await fastify.register(groupRoutes, {
     prefix: '/groups'
+  })
+
+  // Organization routes
+  await fastify.register(organizationRoutes, {
+    prefix: '/organizations'
   })
   
   // Activity log routes
