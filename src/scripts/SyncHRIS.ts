@@ -2,6 +2,10 @@ import HRISDBPool from '../utils/hris/connectdb'
 import DB from '../utils/local/connectdb'
 import bcrypt from 'bcrypt'
 
+import pLimit from 'p-limit';
+
+const limit = pLimit(3); // Controls concurrency level
+
 
 /**
  * Fetches organizations from HRIS database and synchronizes them with the local database.
@@ -81,24 +85,25 @@ async function fetchPosition() {
     const query = `SELECT kode_jabatan, nama_jabatan, id_type_jabatan, kode_unit, status_aktif_jabatan FROM master_jabatan ORDER BY kode_jabatan ASC`
     const results = await HRISDBPool.query(query)
 
-    const positionUpserts = results.rows.map(row =>
-        DB.positions.upsert({
-            where: { id: row.kode_jabatan },
-            create: {
-                id: row.kode_jabatan,
-                name: row.nama_jabatan,
-                unit_id: row.kode_unit,
-                active: row.status_aktif_jabatan === 1,
-            },
-            update: {
-                name: row.nama_jabatan,
-                unit_id: row.kode_unit,
-                active: row.status_aktif_jabatan === 1,
-            },
-        })
-    );
+    const positionUpserts = results.rows.map(row => limit(() =>
+    DB.positions.upsert({
+        where: { id: row.kode_jabatan },
+        create: {
+            id: row.kode_jabatan,
+            name: row.nama_jabatan,
+            unit_id: row.kode_unit,
+            active: row.status_aktif_jabatan === 1,
+        },
+        update: {
+            name: row.nama_jabatan,
+            unit_id: row.kode_unit,
+            active: row.status_aktif_jabatan === 1,
+        },
+    })
+));
 
-    await Promise.all(positionUpserts); // Ensures all inserts are done
+await Promise.all(positionUpserts);
+
 }
 
 
@@ -139,6 +144,10 @@ async function fetchPersonnels() {
     console.log('Success Fetch Organization')
     
     await fetchPosition() // Must finish before the next step!
+    console.log('Success Fetch Positions')
     await fetchPersonnels()
+    console.log('Success Fetch Personnels')
+
+    process.exit(1)
     
 })()

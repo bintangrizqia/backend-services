@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "seed": "npx tsx src/scripts/dummies/create-dummy-users.ts",
-    "organization:sync": "npx tsx src/scripts/OrganizationSync.ts"
+    "hris:sync": "npx tsx src/scripts/SyncHRIS.ts"
   },
   "keywords": [],
   "author": "",
@@ -34,6 +34,7 @@
     "fastify": "^5.2.1",
     "fastify-plugin": "^5.0.1",
     "jsonwebtoken": "^9.0.2",
+    "p-limit": "^6.2.0",
     "pg": "^8.14.1"
   }
 }

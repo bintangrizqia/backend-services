@@ -6,7 +6,7 @@ const pool = new Pool({
     port: ConnectionConfig.DATABASE_HRIS_PORT,
     user: ConnectionConfig.DATABASE_HRIS_USER,
     password: ConnectionConfig.DATABASE_HRIS_PASSWORD,
-    database: ConnectionConfig.DATABASE_HRIS_NAME
+    database: ConnectionConfig.DATABASE_HRIS_NAME,
     
 })
 pool.connect()
