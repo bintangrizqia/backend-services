@@ -53,6 +53,25 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
               npp: Type.String(),
               name: Type.String(),
               email: Type.Union([Type.String(), Type.Null()]),
+              unit: Type.Object({
+                id: Type.String(),
+                name: Type.String(),
+                position_type: Type.String(),
+                created_at: Type.String()
+              }),
+              position: Type.Object({
+                id: Type.Number(),
+                name: Type.String(),
+                type_position: Type.Object({
+                  id: Type.Number(),
+                  name_f: Type.String(),
+                  name_s: Type.String(),
+                  eselon: Type.Number(),
+                  level_type_position: Type.String(),
+                  description: Type.String(),
+                  created_at: Type.String()
+                })
+              }),
               photo: Type.Union([Type.String(), Type.Null()]),
               created_at: Type.String(),
               updated_at: Type.String(),
@@ -87,12 +106,41 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
       }),
       response: {
         200: Type.Object({
-          npp: Type.String(),
-          name: Type.String(),
-          email: Type.Union([Type.String(), Type.Null()]),
-          photo: Type.Union([Type.String(), Type.Null()]),
-          created_at: Type.String(),
-          updated_at: Type.String(),
+          data: Type.Array(
+            Type.Object({
+              npp: Type.String(),
+              name: Type.String(),
+              email: Type.Union([Type.String(), Type.Null()]),
+              unit: Type.Object({
+                id: Type.String(),
+                name: Type.String(),
+                position_type: Type.String(),
+                created_at: Type.String()
+              }),
+              position: Type.Object({
+                id: Type.Number(),
+                name: Type.String(),
+                type_position: Type.Object({
+                  id: Type.Number(),
+                  name_f: Type.String(),
+                  name_s: Type.String(),
+                  eselon: Type.Number(),
+                  level_type_position: Type.String(),
+                  description: Type.String(),
+                  created_at: Type.String()
+                })
+              }),
+              photo: Type.Union([Type.String(), Type.Null()]),
+              created_at: Type.String(),
+              updated_at: Type.String(),
+            })
+          ),
+          meta: Type.Object({
+            page: Type.Number(),
+            limit: Type.Number(),
+            totalCount: Type.Number(),
+            totalPages: Type.Number()
+          })
         })
       },
     }
