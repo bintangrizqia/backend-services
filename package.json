@@ -5,9 +5,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
-    "seed": "npx tsx ./src/scripts/dummies/create-dummy-users.ts",
-    "hris:sync": "npx tsx ./src/scripts/SyncHRIS.ts"
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",

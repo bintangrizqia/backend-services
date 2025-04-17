@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Personnels" ALTER COLUMN "eselon" DROP NOT NULL,
+ALTER COLUMN "eselon" DROP DEFAULT,
+ALTER COLUMN "position_type" DROP NOT NULL;

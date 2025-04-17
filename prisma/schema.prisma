@@ -43,12 +43,6 @@ enum Resource {
   GROUP
 }
 
-enum TypeProject {
-  STRETCH_ACTIVITY
-  TRAINING
-  KPI_DIVISI
-}
-
 enum ActivityType {
   CREATE
   READ
@@ -60,11 +54,13 @@ enum ActivityType {
 }
 
 model Personnels {
-  npp                  String                 @id
+  id                   String                 @id @default(cuid())
+  npp                  String                 @unique
   unit_id              Int?
   position_id          Int?
+  position_type        String?
   photo                String?
-  eselon               Int                    @default(5)
+  eselon               Int?
   name                 String
   email                String?
   password             String
@@ -76,12 +72,8 @@ model Personnels {
   PersonnelPermissions PersonnelPermissions[]
   ActivityLogs         ActivityLogs[]
 
-  unit                                 Units?                                 @relation(fields: [unit_id], references: [id])
-  position                             Positions?                             @relation(fields: [position_id], references: [id])
-  PerformanceManagementPlanTransaction PerformanceManagementPlanTransaction[]
-
-  transactions_as_target PerformanceManagementPlanTransaction[] @relation("PersonnelTarget")
-  transactions_as_source PerformanceManagementPlanTransaction[] @relation("PersonnelSource")
+  unit     Units?     @relation(fields: [unit_id], references: [id])
+  position Positions? @relation(fields: [position_id], references: [id])
 }
 
 model Groups {
@@ -109,7 +101,7 @@ model PersonnelGroups {
   group_id     String
   created_at   DateTime @default(now())
 
-  personnel Personnels @relation(fields: [personnel_id], references: [npp])
+  personnel Personnels @relation(fields: [personnel_id], references: [id])
   group     Groups     @relation(fields: [group_id], references: [id])
 }
 
@@ -120,32 +112,7 @@ model PersonnelPermissions {
   permission   Permission
   created_at   DateTime   @default(now())
 
-  personnel Personnels @relation(fields: [personnel_id], references: [npp])
-}
-
-model Programs {
-  id          String     @id @default(cuid())
-  code        String     @unique
-  name        String
-  description String?
-  created_at  DateTime   @default(now())
-  updated_at  DateTime   @updatedAt
-  Projects    Projects[]
-}
-
-model Projects {
-  id           String      @id @default(cuid())
-  type_project TypeProject
-  due_date     DateTime
-  program_id   String
-  target       String
-  unit         String
-  information  String?
-  note         String?
-  created_at   DateTime    @default(now())
-  updated_at   DateTime    @updatedAt
-
-  program Programs @relation(fields: [program_id], references: [id])
+  personnel Personnels @relation(fields: [personnel_id], references: [id])
 }
 
 model ActivityLogs {
@@ -162,132 +129,69 @@ model ActivityLogs {
   created_at    DateTime     @default(now())
 
   // Optional relation to personnel (may be null for anonymous/unauthenticated access)
-  personnel Personnels? @relation(fields: [personnel_id], references: [npp])
+  personnel Personnels? @relation(fields: [personnel_id], references: [id])
+}
+
+model MasterTypeUnits {
+  id              Int      @id
+  name            String
+  level_type_unit Int
+  active          Boolean  @default(true)
+  description     String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  Units           Units[]
 }
 
 model Units {
-  id         Int      @id
-  parent_id  Int?
-  name       String
-  active     Boolean  @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id            Int      @id
+  parent_id     Int?
+  type_unit_id  Int?
+  name          String
+  position_type String?
+  active        Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 
   // Update the self-relation with proper onDelete behavior
-  unit      Units?  @relation("UnitHierarchy", fields: [parent_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
-  sub_units Units[] @relation("UnitHierarchy")
+  unit      Units?           @relation("UnitHierarchy", fields: [parent_id], references: [id], onDelete: SetNull, onUpdate: SetNull)
+  sub_units Units[]          @relation("UnitHierarchy")
+  type_unit MasterTypeUnits? @relation(fields: [type_unit_id], references: [id], onDelete: SetNull)
 
   Positions  Positions[]
   Personnels Personnels[]
 }
 
-model Positions {
-  id         Int          @id
-  unit_id    Int?
-  name       String
-  active     Boolean      @default(true)
-  created_at DateTime     @default(now())
-  updated_at DateTime     @updatedAt
-  unit       Units?       @relation(fields: [unit_id], references: [id])
-  Personnels Personnels[]
-
-  // Add relations for transactions
-  transactions_as_target PerformanceManagementPlanTransaction[] @relation("PositionTarget")
-  transactions_as_source PerformanceManagementPlanTransaction[] @relation("PositionSource")
+model MasterTypePositions {
+  id                  Int         @id
+  name_s              String
+  name_f              String
+  eselon              Int
+  level_type_position Int
+  active              Boolean     @default(true)
+  description         String?
+  created_at          DateTime    @default(now())
+  updated_at          DateTime    @updatedAt
+  Positions           Positions[]
 }
 
-model ProjectManagementType {
+model Positions {
+  id               Int          @id
+  unit_id          Int?
+  type_position_id Int?
+  name             String
+  active           Boolean      @default(true)
+  created_at       DateTime     @default(now())
+  updated_at       DateTime     @updatedAt
+  unit             Units?       @relation(fields: [unit_id], references: [id])
+  Personnels       Personnels[]
+
+  type_position MasterTypePositions? @relation(fields: [type_position_id], references: [id], onDelete: SetNull)
+}
+
+model Performance_Managelement_Plan_Types {
   id         String   @id @default(cuid())
-  nama       String
-  keterangan String?
+  name       String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-
-  PerformanceManagementPlan PerformanceManagementPlan[]
-}
-
-model ProjectManagementPlanProgram {
-  id           String   @id @default(cuid())
-  nama         String
-  description  String?
-  tahun        Int
-  created_by   String?
-  created_date DateTime
-  kode_program String
-  active       Int      @default(0)
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
-
-  PerformanceManagementPlan PerformanceManagementPlan[]
-}
-
-model PerformanceManagementPlan {
-  id                            String   @id @default(cuid())
-  key                           String
-  nama                          String
-  tagret                        String
-  satuan                        String
-  status_project_kpi            String
-  status_approved               Int
-  description                   String?
-  created_by                    String?
-  tahun                         Int
-  project_management_type_id    String
-  owner                         String
-  project_management_program_id String
-  catatan                       String?
-  created_at                    DateTime @default(now())
-  updated_at                    DateTime @updatedAt
-
-  project_management_type              ProjectManagementType                  @relation(fields: [project_management_type_id], references: [id])
-  program                              ProjectManagementPlanProgram           @relation(fields: [project_management_program_id], references: [id])
-  PerformanceManagementPlanTransaction PerformanceManagementPlanTransaction[]
-}
-
-model PerformanceManagementPlanTransaction {
-  id                                                String    @id @default(cuid())
-  personnel_tujuan                                  String
-  code_position_target                              Int
-  performance_management_plan_id                    String
-  performance_management_plan_transaction_id        String?
-  status_approved                                   Boolean
-  realisasi                                         Boolean
-  status_realisasi                                  Boolean
-  keterangan                                        String?
-  personnel_dari                                    String
-  code_position_from                                Int
-  batas_pengerjaan                                  DateTime
-  created_by                                        String
-  created_date                                      DateTime  @default(now())
-  updated_by                                        String?
-  updated_date                                      DateTime?
-  tahun                                             Int
-  activity_project                                  String?
-  target_activity                                   String?
-  satuan_activity                                   String?
-  realisasi_atasan_pembuat_activity                 Boolean?
-  deskripsi                                         String?
-  status_active_project                             Boolean?
-  status_active_realisasi                           Boolean?
-  project_management_program_id                     String?
-  realisasi_atasan_pembuat_activity_prosentase      Float?
-  realisasi_pribadi_prosentase                      Float?
-  catatan                                           String?
-  realisasi_pribadi_prosentase_asli                 Float?
-  realisasi_atasan_pembuat_activity_prosentase_asli Float?
-  modified_by                                       String?
-  modified_date                                     DateTime?
-
-  project PerformanceManagementPlan              @relation(fields: [performance_management_plan_id], references: [id])
-  parent  PerformanceManagementPlanTransaction?  @relation("ChildTransaction", fields: [performance_management_plan_transaction_id], references: [id], map: "PMPTransaction_parent_fkey")
-  child   PerformanceManagementPlanTransaction[] @relation("ChildTransaction", map: "PMPTransaction_child_fkey")
-
-  personnel_t Personnels @relation("PersonnelTarget", fields: [personnel_tujuan], references: [npp])
-  personnel_d Personnels @relation("PersonnelSource", fields: [personnel_dari], references: [npp])
-
-  // Add relations to Positions
-  position_target Positions   @relation("PositionTarget", fields: [code_position_target], references: [id])
-  position_source Positions   @relation("PositionSource", fields: [code_position_from], references: [id])
-  Personnels      Personnels? @relation(fields: [personnelsNpp], references: [npp])
-  personnelsNpp   String?
 }
