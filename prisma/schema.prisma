@@ -189,9 +189,17 @@ model Positions {
   type_position MasterTypePositions? @relation(fields: [type_position_id], references: [id], onDelete: SetNull)
 }
 
-model Performance_Managelement_Plan_Types {
+model Performance_Management_Plan_Types {
   id         String   @id @default(cuid())
   name       String   @unique
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+}
+
+model Performance_Management_Plan_Program {
+  id String @id @default(cuid())
+}
+
+model Performance_Management_Plan_Transactions {
+  id String @id @default(cuid())
 }
