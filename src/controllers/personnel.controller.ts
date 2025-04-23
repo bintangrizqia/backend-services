@@ -1,23 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
-import bcrypt from 'bcrypt'
 import { Prisma } from '@prisma/client'
 
-interface CreatePersonnelRequest {
-  photo?: string
-  npp: string
-  name: string
-  email?: string
-  password: string
-}
-
-interface UpdatePersonnelRequest {
-  photo?: string
-  npp?: string
-  name?: string
-  email?: string
-  password?: string
-}
 
 interface GetPersonnelParams {
   npp: string
@@ -89,8 +73,7 @@ export class PersonnelController extends BaseController {
           photo: true,
           created_at: true,
           updated_at: true,
-        },
-        orderBy: { name: 'asc' }
+        }
       })
 
       // Get total count for pagination
@@ -151,7 +134,7 @@ export class PersonnelController extends BaseController {
           photo: true,
           created_at: true,
           updated_at: true,
-        },
+        }
       })
 
       if (!personnel) {
