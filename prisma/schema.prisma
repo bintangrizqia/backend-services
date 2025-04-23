@@ -74,6 +74,9 @@ model Personnels {
 
   unit     Units?     @relation(fields: [unit_id], references: [id])
   position Positions? @relation(fields: [position_id], references: [id])
+
+  performance_management_plan_transactions_as_target Performance_Management_Plan_Transactions[] @relation("PersonnelTargetRelation")
+  performance_management_plan_transactions_as_from   Performance_Management_Plan_Transactions[] @relation("PersonnelFromRelation")
 }
 
 model Groups {
@@ -187,19 +190,98 @@ model Positions {
   Personnels       Personnels[]
 
   type_position MasterTypePositions? @relation(fields: [type_position_id], references: [id], onDelete: SetNull)
+
+  // Tambahkan relasi ke transaksi
+  performance_management_plan_transactions_as_target Performance_Management_Plan_Transactions[] @relation("PositionTargetRelation")
+  performance_management_plan_transactions_as_from   Performance_Management_Plan_Transactions[] @relation("PositionFromRelation")
 }
 
 model Performance_Management_Plan_Types {
-  id         String   @id @default(cuid())
-  name       String   @unique
+  id                                   String                                 @id @default(cuid())
+  name                                 String                                 @unique
+  description                          String?
+  created_at                           DateTime                               @default(now())
+  updated_at                           DateTime                               @updatedAt
+  Performance_Management_Plan_Projects Performance_Management_Plan_Projects[]
+}
+
+model Performance_Management_Plan_Projects {
+  id                                     String  @id @default(cuid())
+  key                                    String
+  name                                   String
+  target                                 String
+  unit                                   String
+  project_status                         String
+  approval_status                        Int
+  description                            String?
+  created_by                             String?
+  year                                   Int
+  performance_management_plan_type_id    String
+  owner                                  String
+  performance_management_plan_program_id String
+  note                                   String?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  performance_management_plan_type    Performance_Management_Plan_Types   @relation(fields: [performance_management_plan_type_id], references: [id], map: "fk_plan_type")
+  performance_management_plan_program Performance_Management_Plan_Program @relation(fields: [performance_management_plan_program_id], references: [id], map: "fk_plan_program")
+
+  performance_management_plan_transaction           Performance_Management_Plan_Transactions[] @relation("PerformanceManagementProjectRel")
+  performance_management_plan_transaction_as_parent Performance_Management_Plan_Transactions[] @relation("PerformanceManagementProjectParentRel")
 }
 
 model Performance_Management_Plan_Program {
-  id String @id @default(cuid())
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  year         Int
+  status       String
+  created_by   String
+  program_code String
+  active       Int
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  performance_management_plan_projects Performance_Management_Plan_Projects[]
 }
 
 model Performance_Management_Plan_Transactions {
-  id String @id @default(cuid())
+  id                                                      String   @id @default(cuid())
+  personnel_target_id                                     String
+  position_target_id                                      Int
+  performance_management_project_id                       String
+  performance_management_project_parent_id                String
+  approved_status                                         Int
+  realization                                             String
+  realization_status                                      Int
+  description                                             String?
+  personnel_from_id                                       String
+  position_from_id                                        Int
+  due_date                                                DateTime
+  created_by                                              String
+  year                                                    Int
+  activity_project                                        String
+  activity_target                                         String
+  activity_unit                                           String
+  boss_who_creating_an_activity                           String
+  project_active_status                                   String
+  realization_active_status                               String
+  performance_management_plan_program_id                  String
+  realization_boss_who_create_an_activity_percentage      Int
+  realization_self_percentage                             Int
+  note                                                    String?
+  realization_boss_who_create_an_activity_percentage_real Int
+  realization_self_percentage_real                        Int
+  created_at                                              DateTime @default(now())
+  updated_at                                              DateTime @updatedAt
+
+  personnel_target Personnels @relation("PersonnelTargetRelation", fields: [personnel_target_id], references: [id], map: "fk_personnel_target")
+  personnel_from   Personnels @relation("PersonnelFromRelation", fields: [personnel_from_id], references: [id], map: "fk_personnel_from")
+
+  position_target Positions @relation("PositionTargetRelation", fields: [position_target_id], references: [id], map: "fk_position_target")
+  position_from   Positions @relation("PositionFromRelation", fields: [position_from_id], references: [id], map: "fk_position_from")
+
+  performance_management_project        Performance_Management_Plan_Projects @relation("PerformanceManagementProjectRel", fields: [performance_management_project_id], references: [id], map: "fk_pmp_project")
+  performance_management_project_parent Performance_Management_Plan_Projects @relation("PerformanceManagementProjectParentRel", fields: [performance_management_project_id], references: [id], map: "fk_pmp_project_parent")
 }
