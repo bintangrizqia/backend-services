@@ -88,6 +88,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'auth', description: 'Authentication endpoints' },
         { name: 'personnels', description: 'Personnel management operations' },
         { name: 'groups', description: 'Group management operations' },
+        { name: 'plan-types', description: 'Plan types management operations' },
         { name: 'utility', description: 'Utility endpoints' },
         { name: 'organizations', description: 'Organizations endpoints' },
 

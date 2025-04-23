@@ -34,6 +34,12 @@ enum Permission {
   CAN_READ_GROUP
   CAN_UPDATE_GROUP
   CAN_DELETE_GROUP
+
+  CAN_CREATE_PLAN_TYPE
+  CAN_DELETE_PLAN_TYPE
+  CAN_UPDATE_PLAN_TYPE
+  CAN_READ_PLAN_TYPE
+
 }
 
 enum Resource {
@@ -41,6 +47,7 @@ enum Resource {
   PROJECT
   ORGANIZATION
   GROUP
+  PLAN_TYPES
 }
 
 enum ActivityType {
@@ -77,6 +84,8 @@ model Personnels {
 
   performance_management_plan_transactions_as_target Performance_Management_Plan_Transactions[] @relation("PersonnelTargetRelation")
   performance_management_plan_transactions_as_from   Performance_Management_Plan_Transactions[] @relation("PersonnelFromRelation")
+
+  @@index([name, email])
 }
 
 model Groups {
@@ -96,6 +105,7 @@ model GroupPermissions {
   created_at DateTime   @default(now())
 
   group Groups @relation(fields: [group_id], references: [id])
+  
 }
 
 model PersonnelGroups {
@@ -163,6 +173,8 @@ model Units {
 
   Positions  Positions[]
   Personnels Personnels[]
+
+  @@index([name, position_type])
 }
 
 model MasterTypePositions {
@@ -176,6 +188,8 @@ model MasterTypePositions {
   created_at          DateTime    @default(now())
   updated_at          DateTime    @updatedAt
   Positions           Positions[]
+
+  @@index([name_f, name_s])
 }
 
 model Positions {
@@ -194,6 +208,8 @@ model Positions {
   // Tambahkan relasi ke transaksi
   performance_management_plan_transactions_as_target Performance_Management_Plan_Transactions[] @relation("PositionTargetRelation")
   performance_management_plan_transactions_as_from   Performance_Management_Plan_Transactions[] @relation("PositionFromRelation")
+
+  @@index([name, active])
 }
 
 model Performance_Management_Plan_Types {
@@ -203,6 +219,8 @@ model Performance_Management_Plan_Types {
   created_at                           DateTime                               @default(now())
   updated_at                           DateTime                               @updatedAt
   Performance_Management_Plan_Projects Performance_Management_Plan_Projects[]
+
+  @@index([name])
 }
 
 model Performance_Management_Plan_Projects {
