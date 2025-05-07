@@ -162,7 +162,7 @@ model Units {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  unit      Units?           @relation("UnitHierarchy", fields: [parent_id], references: [id], onDelete: SetNull, onUpdate: SetNull)
+  parent      Units?           @relation("UnitHierarchy", fields: [parent_id], references: [id], onDelete: SetNull, onUpdate: SetNull)
   sub_units Units[]          @relation("UnitHierarchy")
   type_unit MasterTypeUnits? @relation(fields: [type_unit_id], references: [id], onDelete: SetNull)
 
