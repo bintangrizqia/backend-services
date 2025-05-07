@@ -31,7 +31,7 @@ const organizationRoutes: FastifyPluginAsync = async (fastify) => {
         
         // Regular users go through permission check
         await new Promise<void>((resolve, reject) => {
-          fastify.checkPermission(Resource.ORGANIZATION, Permission.CAN_CREATE_ORGANIZATION)(request, reply, (err) => {
+          fastify.checkPermission(Resource.ORGANIZATION, Permission.CAN_READ_ORGANIZATION)(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
           });

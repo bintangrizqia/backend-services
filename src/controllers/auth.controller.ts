@@ -37,6 +37,20 @@ export class AuthController extends BaseController {
     try {
       const { npp, password } = request.body
 
+      if (npp === null || npp === '') {
+        return reply.status(401).send({
+          error: 'Authentication failed',
+          message: 'Npp cannot be empty.'
+        })
+      }
+
+      if (password === null || npp === '') {
+        return reply.status(401).send({
+          error: 'Authentication failed',
+          message: 'Password cannot be empty.'
+        })
+      }
+
       // Find user by NPP
       const user = await this.prisma.personnels.findUnique({
         where: { npp }

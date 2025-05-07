@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "Permission" ADD VALUE 'CAN_READ_PERMISSION';
+
+-- AlterEnum
+ALTER TYPE "Resource" ADD VALUE 'PERMISSION';

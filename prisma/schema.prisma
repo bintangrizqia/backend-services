@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma schema file
 
 generator client {
   provider = "prisma-client-js"
@@ -40,6 +36,7 @@ enum Permission {
   CAN_UPDATE_PLAN_TYPE
   CAN_READ_PLAN_TYPE
 
+  CAN_READ_PERMISSION
 }
 
 enum Resource {
@@ -48,6 +45,7 @@ enum Resource {
   ORGANIZATION
   GROUP
   PLAN_TYPES
+  PERMISSION
 }
 
 enum ActivityType {
@@ -105,7 +103,6 @@ model GroupPermissions {
   created_at DateTime   @default(now())
 
   group Groups @relation(fields: [group_id], references: [id])
-  
 }
 
 model PersonnelGroups {
@@ -141,7 +138,6 @@ model ActivityLogs {
   activity_type ActivityType @default(OTHER)
   created_at    DateTime     @default(now())
 
-  // Optional relation to personnel (may be null for anonymous/unauthenticated access)
   personnel Personnels? @relation(fields: [personnel_id], references: [id])
 }
 
@@ -166,7 +162,6 @@ model Units {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  // Update the self-relation with proper onDelete behavior
   unit      Units?           @relation("UnitHierarchy", fields: [parent_id], references: [id], onDelete: SetNull, onUpdate: SetNull)
   sub_units Units[]          @relation("UnitHierarchy")
   type_unit MasterTypeUnits? @relation(fields: [type_unit_id], references: [id], onDelete: SetNull)
@@ -205,12 +200,13 @@ model Positions {
 
   type_position MasterTypePositions? @relation(fields: [type_position_id], references: [id], onDelete: SetNull)
 
-  // Tambahkan relasi ke transaksi
   performance_management_plan_transactions_as_target Performance_Management_Plan_Transactions[] @relation("PositionTargetRelation")
   performance_management_plan_transactions_as_from   Performance_Management_Plan_Transactions[] @relation("PositionFromRelation")
 
   @@index([name, active])
 }
+
+// Performance Management models
 
 model Performance_Management_Plan_Types {
   id                                   String                                 @id @default(cuid())
@@ -289,8 +285,6 @@ model Performance_Management_Plan_Transactions {
   realization_boss_who_create_an_activity_percentage      Int
   realization_self_percentage                             Int
   note                                                    String?
-  realization_boss_who_create_an_activity_percentage_real Int
-  realization_self_percentage_real                        Int
   created_at                                              DateTime @default(now())
   updated_at                                              DateTime @updatedAt
 
@@ -301,5 +295,5 @@ model Performance_Management_Plan_Transactions {
   position_from   Positions @relation("PositionFromRelation", fields: [position_from_id], references: [id], map: "fk_position_from")
 
   performance_management_project        Performance_Management_Plan_Projects @relation("PerformanceManagementProjectRel", fields: [performance_management_project_id], references: [id], map: "fk_pmp_project")
-  performance_management_project_parent Performance_Management_Plan_Projects @relation("PerformanceManagementProjectParentRel", fields: [performance_management_project_id], references: [id], map: "fk_pmp_project_parent")
+  performance_management_project_parent Performance_Management_Plan_Projects @relation("PerformanceManagementProjectParentRel", fields: [performance_management_project_parent_id], references: [id], map: "fk_pmp_project_parent")
 }

@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { Type } from '@sinclair/typebox'
 import { ActivityLogController } from '../controllers/activity-log.controller'
-import { Resource, Permission } from '@prisma/client'
+import { Permission } from '@prisma/client'
 
 const activityLogRoutes: FastifyPluginAsync = async (fastify) => {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>()

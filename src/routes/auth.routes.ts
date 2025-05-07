@@ -50,12 +50,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         photo: Type.Optional(Type.String()),
         is_superuser: Type.Optional(Type.Boolean()),
         groups: Type.Optional(Type.Array(Type.String())),
-        permissions: Type.Optional(Type.Array(
-          Type.Object({
-            resource: Type.Enum({ PERSONNEL: 'PERSONNEL', PROJECT: 'PROJECT' }),
-            permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' })
-          })
-        ))
+        permissions: Type.Optional(Type.Array(Type.String()))
       }),
       response: {
         201: Type.Object({
@@ -84,8 +79,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             Type.Object({
               id: Type.String(),
               personnel_id: Type.String(),
-              resource: Type.Enum({ PERSONNEL: 'PERSONNEL', PROJECT: 'PROJECT' }),
-              permission: Type.Enum({ READ: 'READ', DELETE: 'DELETE', UPDATE: 'UPDATE', CREATE: 'CREATE' }),
+              permission: Type.Enum({ CAN_READ_USER: 'CAN_READ_USER', CAN_DELETE_USER: 'CAN_DELETE_USER', CAN_UPDATE_USER: 'CAN_UPDATE_USER', CAN_CREATE_USER: 'CAN_CREATE_USER' }),
               created_at: Type.String()
             })
           )

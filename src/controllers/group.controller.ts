@@ -73,7 +73,12 @@ export class GroupController extends BaseController {
       const group = await this.prisma.groups.findUnique({
         where: { id },
         include: {
-          GroupPermissions: true
+          GroupPermissions: {
+            select: {
+              resource: true,
+              permission: true
+            }
+          }
         }
       })
 

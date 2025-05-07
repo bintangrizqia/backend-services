@@ -88,11 +88,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
           updated_at: Type.String(),
           GroupPermissions: Type.Array(
             Type.Object({
-              id: Type.String(),
-              group_id: Type.String(),
               resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
               permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
-              created_at: Type.String()
             })
           )
         })
