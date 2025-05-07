@@ -27,6 +27,15 @@ interface GetGroupQuery {
   search?: string
 }
 
+
+interface AssignGroupToPersonnelBody {
+  personnels: string[]
+}
+
+interface AssignGroupToPersonnelParams {
+  group_id: string
+}
+
 export class GroupController extends BaseController {
   constructor(fastify: FastifyInstance) {
     super(fastify)
@@ -236,9 +245,98 @@ export class GroupController extends BaseController {
         where: { id }
       })
 
-      return reply.status(204).send()
+      return reply.status(204).send({
+        message: 'Group deleted successfully.'
+      })
     } catch (error) {
       return this.handleError(error, reply, 'Failed to delete group')
+    }
+  }
+
+  async assignGroupToPersonnel(request: FastifyRequest<{ Params: AssignGroupToPersonnelParams, Body: AssignGroupToPersonnelBody }>, reply: FastifyReply) {
+    try {
+      const {personnels} = request.body
+      const {group_id} = request.params
+      const groups_personnels: object[] = []
+
+      personnels.map(async (npp: string) => {
+        const personnel = await this.prisma.personnels.findUniqueOrThrow({
+          where: {npp}
+        }).catch((e: any) => {
+          return reply.status(500).send({
+            message: `Cannot find personnel with npp ${npp}`
+          })
+        })
+
+        const group = await this.prisma.groups.findUniqueOrThrow({
+          where: {id: group_id}
+        }).catch((e : any) => {
+          return reply.status(500).send({
+            message: `Cannot find group with id ${group_id}`
+          })
+        })
+
+        /**
+         * Clear person in group personnel first
+         */
+
+        await this.prisma.personnelGroups.deleteMany({
+          where: {group_id: group.id}
+        })
+
+        /**
+         * After delete all, let initialize again
+         */
+
+        const personnel_groups = await this.prisma.personnelGroups.create({
+          data: {
+            group_id: group.id,
+            personnel_id: personnel.id,
+          },
+          select: {
+            personnel: {
+              select: {
+                id: true,
+                npp: true,
+                name: true,
+                position: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                },
+                unit: {
+                  select: {
+                    id: true,
+                    name: true,
+                    parent: {
+                      select: {
+                        id: true,
+                        name: true
+                      }
+                    }
+                  }
+                },
+                eselon: true,
+                is_superuser: true,
+                updated_at: true
+              }
+            }
+          }
+        }).catch((e : any) => {
+          return reply.status(500).send({
+            message: `Failed to insert npp ${personnel.npp} to group ${group.name}`
+          })
+        })
+
+        groups_personnels.push(personnel_groups)
+      })
+
+      return this.sendResponse(reply, groups_personnels)
+       
+    } catch (error) {
+      return this.handleError(error, reply, 'Failed to assign personnel')
+      
     }
   }
 }
