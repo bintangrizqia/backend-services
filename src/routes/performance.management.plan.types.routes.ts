@@ -159,7 +159,7 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
   server.delete<{
     Params: DeletePlanTypeParams
   }>('/:id', {
-    preHandler: fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_DELETE_PLAN_TYPE),
+    preHandler: fastify.checkPermission(Resource.PLAN_TYPES, [Permission.CAN_DELETE_PLAN_TYPE, Permission.CAN_READ_PLAN_TYPE]),
     schema: {
         tags: ['plan-types'],
         description: 'Hapus plan type',
@@ -180,7 +180,7 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
     Params: DeletePlanTypeParams,
     Body: CreatePlanTypeBody
   }>('/:id', {
-    preHandler: fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_UPDATE_PLAN_TYPE),
+    preHandler: fastify.checkPermission(Resource.PLAN_TYPES, [Permission.CAN_UPDATE_PLAN_TYPE, Permission.CAN_READ_PLAN_TYPE]),
     schema: {
         tags: ['plan-types'],
         description: 'Edit plan type',

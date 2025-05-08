@@ -251,7 +251,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         
         // Regular users go through permission check
         await new Promise<void>((resolve, reject) => {
-          fastify.checkPermission(Resource.GROUP, [Permission.CAN_DELETE_GROUP, Permission.CAN_DELETE_GROUP])(request, reply, (err) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_GROUP, Permission.CAN_DELETE_GROUP])(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
           });
@@ -332,7 +332,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         
         // Regular users go through permission check
         await new Promise<void>((resolve, reject) => {
-          fastify.checkPermission(Resource.GROUP, [Permission.CAN_UPDATE_GROUP, Permission.CAN_READ_PERMISSION])(request, reply, (err) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_UPDATE_GROUP, Permission.CAN_READ_PERMISSION, Permission.CAN_READ_GROUP])(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
           });
@@ -382,7 +382,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         
         // Regular users go through permission check
         await new Promise<void>((resolve, reject) => {
-          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_GROUP, Permission.CAN_READ_PERMISSION])(request, reply, (err) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_GROUP, Permission.CAN_READ_PERMISSION, Permission.CAN_DELETE_GROUP])(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
           });
@@ -424,7 +424,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         
         // Regular users go through permission check
         await new Promise<void>((resolve, reject) => {
-          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_GROUP, Permission.CAN_READ_PERMISSION])(request, reply, (err) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_GROUP, Permission.CAN_READ_PERMISSION, Permission.CAN_UPDATE_GROUP])(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
           });
