@@ -2,6 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { Type } from '@sinclair/typebox'
 import { AuthController } from '../controllers/auth.controller'
+import {Permission, Resource} from '@prisma/client'
 
 declare module 'fastify' {
   interface FastifyContextConfig {
@@ -37,7 +38,41 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   }, authController.login.bind(authController))
 
   // Register endpoint - memerlukan token
-  server.post('/register', {
+  interface PermissionItem {
+    resource: Resource
+    permission: Permission
+  }
+  
+  interface RegisterRequest {
+    npp: string
+    name: string
+    email?: string
+    password: string
+    photo?: string
+    is_superuser?: boolean
+    groups?: string[]
+    permissions?: PermissionItem[]
+  }
+  server.post<{
+    Body: RegisterRequest
+  }>('/register', {
+
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_PERSONNEL, Permission.CAN_CREATE_PERSONNEL])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['auth'],
       description: 'Mendaftarkan pengguna baru',
@@ -79,7 +114,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             Type.Object({
               id: Type.String(),
               personnel_id: Type.String(),
-              permission: Type.Enum({ CAN_READ_USER: 'CAN_READ_USER', CAN_DELETE_USER: 'CAN_DELETE_USER', CAN_UPDATE_USER: 'CAN_UPDATE_USER', CAN_CREATE_USER: 'CAN_CREATE_USER' }),
+              permission: Type.String(),
               created_at: Type.String()
             })
           )

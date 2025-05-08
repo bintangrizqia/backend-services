@@ -96,7 +96,22 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
   server.get<{
     Params: GetPersonnelParams
   }>('/:npp', {
-    preHandler: fastify.checkPermission(Resource.PERSONNEL, Permission.CAN_READ_PERSONNEL),
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing personnel list, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.PERSONNEL, Permission.CAN_READ_PERSONNEL)(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['personnels'],
       description: 'Mendapatkan personel berdasarkan NPP',

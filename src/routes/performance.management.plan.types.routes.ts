@@ -31,7 +31,7 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
         
         // Regular users go through permission check
         await new Promise<void>((resolve, reject) => {
-          fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_CREATE_PLAN_TYPE)(request, reply, (err) => {
+          fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_READ_PLAN_TYPE)(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
           });
@@ -75,7 +75,22 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
   server.get<{
     Params: GetPlanTypeParams
   }>('/:id', {
-    preHandler: fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_READ_PLAN_TYPE),
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_READ_PLAN_TYPE)(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['plan-types'],
       description: 'Mendapatkan plan type berdasarkan id',
@@ -102,7 +117,22 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
   server.post<{
     Body: CreatePlanTypeBody
   }>('/', {
-    preHandler: fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_CREATE_PLAN_TYPE),
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.PLAN_TYPES, [Permission.CAN_READ_PLAN_TYPE, Permission.CAN_CREATE_PLAN_TYPE])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
         tags: ['plan-types'],
         description: 'Membuat plan type',

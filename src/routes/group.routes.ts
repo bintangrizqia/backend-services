@@ -3,6 +3,7 @@ import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { Type } from '@sinclair/typebox'
 import { GroupController } from '../controllers/group.controller'
 import { GroupPermissionController } from '../controllers/group-permission.controller'
+import {Resource, Permission} from '@prisma/client'
 
 const groupRoutes: FastifyPluginAsync = async (fastify) => {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>()
@@ -10,8 +11,33 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
   const groupPermissionController = new GroupPermissionController(fastify)
 
   server.addHook('preHandler', fastify.authenticate)
-  
-  server.get('/', {
+    
+
+  interface GetGroupQuery {
+    page?: number;
+    limit?: number;
+    search?: string;
+  }
+
+  server.get<{
+    Querystring: GetGroupQuery
+  }>('/', {
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group list, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, Permission.CAN_READ_GROUP)(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       querystring: Type.Object({
@@ -41,7 +67,28 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupController.getAllGroups.bind(groupController))
 
-  server.get('/:id', {
+  interface GetGroupParams {
+    id: string
+  }
+  server.get<{
+    Params: GetGroupParams
+  }>('/:id', {
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group list, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, Permission.CAN_READ_PERSONNEL)(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       params: Type.Object({
@@ -68,7 +115,36 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupController.getGroupById.bind(groupController))
 
-  server.post('/', {
+
+  interface PermissionItem {
+    resource: Resource
+    permission: Permission
+  }
+
+  interface CreateGroupRequest {
+    name: string
+    permissions?: PermissionItem[]
+  }
+  
+  server.post<{
+    Body: CreateGroupRequest
+  }>('/', {
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group list, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_CREATE_GROUP, Permission.CAN_READ_GROUP])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       body: Type.Object({
@@ -98,7 +174,35 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupController.createGroup.bind(groupController))
 
-  server.put('/:id', {
+  interface PutGroupParams {
+    id: string
+  }
+
+  interface UpdateGroupRequest {
+    name?: string
+    permissions?: PermissionItem[]
+  }
+
+  server.put<{
+    Params: PutGroupParams
+    Body: UpdateGroupRequest
+  }>('/:id', {
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_UPDATE_GROUP, Permission.CAN_READ_GROUP])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       params: Type.Object({
@@ -134,7 +238,25 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupController.updateGroup.bind(groupController))
 
-  server.delete('/:id', {
+  server.delete<{
+    Params: GetGroupParams
+  }>('/:id', {
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group delete, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_DELETE_GROUP, Permission.CAN_DELETE_GROUP])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       params: Type.Object({
@@ -147,7 +269,29 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupController.deleteGroup.bind(groupController))
 
-  server.get('/:group_id/permissions', {
+
+  interface GetGroupPermissionParams {
+    group_id: string
+  }
+  server.get<{
+    Params: GetGroupPermissionParams
+  }>('/:group_id/permissions', {
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_GROUP, Permission.CAN_READ_PERMISSION])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       params: Type.Object({
@@ -168,7 +312,32 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupPermissionController.getGroupPermissions.bind(groupPermissionController))
 
-  server.post('/:group_id/permissions', {
+
+  interface CreateGroupPermissionRequest {
+    resource: Resource
+    permission: Permission[]
+  }
+
+  server.put<{
+    Params: GetGroupPermissionParams
+    Body: CreateGroupPermissionRequest
+  }>('/:group_id/permissions', {
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_UPDATE_GROUP, Permission.CAN_READ_PERMISSION])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       params: Type.Object({
@@ -195,7 +364,30 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupPermissionController.addGroupPermission.bind(groupPermissionController))
 
-  server.delete('/:group_id/permissions/:permission_id', {
+
+  interface DeleteGroupPermissionParams {
+    group_id: string
+    permission_id: string
+  }
+  server.delete<{
+    Params: DeleteGroupPermissionParams
+  }>('/:group_id/permissions/:permission_id', {
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_GROUP, Permission.CAN_READ_PERMISSION])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       params: Type.Object({
@@ -210,8 +402,34 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
   }, groupPermissionController.deleteGroupPermission.bind(groupPermissionController))
 
 
+  interface GetGroupToPersonnelParams {
+    group_id: string
+  }
+  interface CreateGroupToPersonnelBody {
+    personnels: string[]
+  }
 
-  server.post('/assigns/:group_id/personnels', {
+  server.post<{
+    Params: GetGroupToPersonnelParams
+    Body: CreateGroupToPersonnelBody
+  }>('/assigns/:group_id/personnels', {
+
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preValidation: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.GROUP, [Permission.CAN_READ_GROUP, Permission.CAN_READ_PERMISSION])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
       tags: ['groups'],
       params: Type.Object({
