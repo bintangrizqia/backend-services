@@ -57,8 +57,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
             Type.Object({
               id: Type.String(),
               group_id: Type.String(),
-              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
-              permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
+              resource: Type.String(),
+              permission: Type.String(),
               created_at: Type.String()
             })
           )
@@ -75,8 +75,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         name: Type.String(),
         permissions: Type.Optional(Type.Array(
           Type.Object({
-            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
-            permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
+            resource: Type.String(),
+            permission: Type.String()
           })
         ))
       }),
@@ -88,8 +88,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
           updated_at: Type.String(),
           GroupPermissions: Type.Array(
             Type.Object({
-              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
-              permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
+              resource: Type.String(),
+              permission: Type.String()
             })
           )
         })
@@ -108,8 +108,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         name: Type.Optional(Type.String()),
         permissions: Type.Optional(Type.Array(
           Type.Object({
-            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
-            permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
+            resource: Type.String(),
+            permission: Type.String()
           })
         ))
       }),
@@ -123,8 +123,8 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
             Type.Object({
               id: Type.String(),
               group_id: Type.String(),
-              resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
-              permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
+              resource: Type.String(),
+              permission: Type.String(),
               created_at: Type.String()
             })
           )
@@ -147,19 +147,19 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupController.deleteGroup.bind(groupController))
 
-  server.get('/:groupId/permissions', {
+  server.get('/:group_id/permissions', {
     schema: {
       tags: ['groups'],
       params: Type.Object({
-        groupId: Type.String()
+        group_id: Type.String()
       }),
       response: {
         200: Type.Array(
           Type.Object({
             id: Type.String(),
             group_id: Type.String(),
-            resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
-            permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
+            resource: Type.String(),
+            permission: Type.String(),
             created_at: Type.String()
           })
         )
@@ -168,35 +168,39 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, groupPermissionController.getGroupPermissions.bind(groupPermissionController))
 
-  server.post('/:groupId/permissions', {
+  server.post('/:group_id/permissions', {
     schema: {
       tags: ['groups'],
       params: Type.Object({
-        groupId: Type.String()
+        group_id: Type.String()
       }),
-      body: Type.Object({
-        resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
-        permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
-      }),
-      response: {
-        201: Type.Object({
-          id: Type.String(),
-          group_id: Type.String(),
-          resource: Type.Enum({ USER: 'USER', PROJECT: 'PROJECT', GROUP: 'GROUP' }),
-          permission: Type.Enum({ CAN_READ_GROUP: 'CAN_READ_GROUP', CAN_DELETE_GROUP: 'CAN_DELETE_GROUP', CAN_UPDATE_GROUP: 'CAN_UPDATE_GROUP', CAN_CREATE_GROUP: 'CAN_CREATE_GROUP' }),
-          created_at: Type.String()
+      body: Type.Array(
+        Type.Object({
+          resource: Type.String(),
+          permission: Type.String(),
         })
+      ),
+      response: {
+        201: Type.Array(
+          Type.Object({
+            id: Type.String(),
+            group_id: Type.String(),
+            resource: Type.String(),
+            permission: Type.String(),
+            created_at: Type.String()
+          })
+        )
       },
       security: [{ bearerAuth: [] }]
     }
   }, groupPermissionController.addGroupPermission.bind(groupPermissionController))
 
-  server.delete('/:groupId/permissions/:permissionId', {
+  server.delete('/:group_id/permissions/:permission_id', {
     schema: {
       tags: ['groups'],
       params: Type.Object({
-        groupId: Type.String(),
-        permissionId: Type.String()
+        group_id: Type.String(),
+        permission_id: Type.String()
       }),
       response: {
         204: Type.Null()

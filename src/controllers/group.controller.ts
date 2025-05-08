@@ -259,6 +259,14 @@ export class GroupController extends BaseController {
       const {group_id} = request.params
       const groups_personnels: object[] = []
 
+
+      /**
+       * Delete all personnel in the same group first.
+       */
+      await this.prisma.personnelGroups.deleteMany({
+          where: {group_id: group_id}
+      })
+
       personnels.map(async (npp: string) => {
         const personnel = await this.prisma.personnels.findUniqueOrThrow({
           where: {npp}
@@ -274,14 +282,6 @@ export class GroupController extends BaseController {
           return reply.status(500).send({
             message: `Cannot find group with id ${group_id}`
           })
-        })
-
-        /**
-         * Clear person in group personnel first
-         */
-
-        await this.prisma.personnelGroups.deleteMany({
-          where: {group_id: group.id}
         })
 
         /**

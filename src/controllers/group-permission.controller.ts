@@ -3,17 +3,17 @@ import { BaseController } from './base.controller'
 import { Permission, Resource } from '@prisma/client'
 
 interface GroupPermissionParams {
-  groupId: string
+  group_id: string
 }
 
 interface CreateGroupPermissionRequest {
   resource: Resource
-  permission: Permission
+  permission: Permission[]
 }
 
 interface DeleteGroupPermissionParams {
-  groupId: string
-  permissionId: string
+  group_id: string
+  permission_id: string
 }
 
 export class GroupPermissionController extends BaseController {
@@ -23,10 +23,10 @@ export class GroupPermissionController extends BaseController {
 
   async getGroupPermissions(request: FastifyRequest<{ Params: GroupPermissionParams }>, reply: FastifyReply) {
     try {
-      const { groupId } = request.params
+      const { group_id } = request.params
 
       const group = await this.prisma.groups.findUnique({
-        where: { id: groupId }
+        where: { id: group_id }
       })
 
       if (!group) {
@@ -37,7 +37,7 @@ export class GroupPermissionController extends BaseController {
       }
 
       const permissions = await this.prisma.groupPermissions.findMany({
-        where: { group_id: groupId }
+        where: { group_id: group_id }
       })
 
       return this.sendResponse(reply, permissions)
@@ -51,11 +51,12 @@ export class GroupPermissionController extends BaseController {
     reply: FastifyReply
   ) {
     try {
-      const { groupId } = request.params
+      const { group_id } = request.params
       const { resource, permission } = request.body
+      const permissions : object[] = []
 
       const group = await this.prisma.groups.findUnique({
-        where: { id: groupId }
+        where: { id: group_id }
       })
 
       if (!group) {
@@ -65,30 +66,40 @@ export class GroupPermissionController extends BaseController {
         })
       }
 
-      const existingPermission = await this.prisma.groupPermissions.findFirst({
-        where: {
-          group_id: groupId,
-          resource,
-          permission
-        }
-      })
-
-      if (existingPermission) {
-        return reply.status(409).send({
-          error: 'Conflict',
-          message: 'This permission is already assigned to the group'
+      permission.map(async (permission : Permission) => {
+        const existingPermission = await this.prisma.groupPermissions.findFirst({
+          where: {
+            group_id: group_id,
+            resource,
+            permission
+          }
         })
-      }
-
-      const newPermission = await this.prisma.groupPermissions.create({
-        data: {
-          group_id: groupId,
-          resource,
-          permission
+  
+        if (existingPermission) {
+          return reply.status(409).send({
+            error: 'Conflict',
+            message: 'This permission is already assigned to the group'
+          })
         }
+  
+        const newPermission = await this.prisma.groupPermissions.create({
+          data: {
+            group_id: group_id,
+            resource,
+            permission
+          },
+          select: {
+            id: true,
+            resource: true,
+            permission: true,
+            created_at: true
+          }
+        })
+        permissions.push(newPermission)
+        
       })
 
-      return this.sendResponse(reply, newPermission, 201)
+      return this.sendResponse(reply, permissions, 201)
     } catch (error) {
       return this.handleError(error, reply, 'Failed to add group permission')
     }
@@ -96,12 +107,12 @@ export class GroupPermissionController extends BaseController {
 
   async deleteGroupPermission(request: FastifyRequest<{ Params: DeleteGroupPermissionParams }>, reply: FastifyReply) {
     try {
-      const { groupId, permissionId } = request.params
+      const { group_id, permission_id } = request.params
 
       const permission = await this.prisma.groupPermissions.findFirst({
         where: {
-          id: permissionId,
-          group_id: groupId
+          id: permission_id,
+          group_id: group_id
         }
       })
 
@@ -113,7 +124,7 @@ export class GroupPermissionController extends BaseController {
       }
 
       await this.prisma.groupPermissions.delete({
-        where: { id: permissionId }
+        where: { id: permission_id }
       })
 
       return reply.status(204).send()

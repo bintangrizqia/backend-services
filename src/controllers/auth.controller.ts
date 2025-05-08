@@ -150,11 +150,11 @@ export class AuthController extends BaseController {
           }
 
           // Create group assignments
-          await Promise.all(groups.map(groupId => 
+          await Promise.all(groups.map(group_id => 
             tx.personnelGroups.create({
               data: {
                 personnel_id: newUser.npp,
-                group_id: groupId
+                group_id: group_id
               }
             })
           ))
