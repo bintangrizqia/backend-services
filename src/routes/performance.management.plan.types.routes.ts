@@ -22,7 +22,7 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
     Querystring: GetPlanTypesQuery
   }>('/', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
@@ -76,7 +76,7 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
     Params: GetPlanTypeParams
   }>('/:id', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
@@ -118,7 +118,7 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
     Body: CreatePlanTypeBody
   }>('/', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
@@ -159,7 +159,22 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
   server.delete<{
     Params: DeletePlanTypeParams
   }>('/:id', {
-    preHandler: fastify.checkPermission(Resource.PLAN_TYPES, [Permission.CAN_DELETE_PLAN_TYPE, Permission.CAN_READ_PLAN_TYPE]),
+      // Modifikasi hook untuk membiarkan superuser lewat
+      preHandler: async (request, reply) => {
+        // Superuser bypass checks
+        if (request.user && request.user.is_superuser === true) {
+          fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
+          return;
+        }
+        
+        // Regular users go through permission check
+        await new Promise<void>((resolve, reject) => {
+          fastify.checkPermission(Resource.PLAN_TYPES, [Permission.CAN_READ_PLAN_TYPE, Permission.CAN_DELETE_PLAN_TYPE])(request, reply, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      },
     schema: {
         tags: ['plan-types'],
         description: 'Hapus plan type',
@@ -180,7 +195,22 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
     Params: DeletePlanTypeParams,
     Body: CreatePlanTypeBody
   }>('/:id', {
-    preHandler: fastify.checkPermission(Resource.PLAN_TYPES, [Permission.CAN_UPDATE_PLAN_TYPE, Permission.CAN_READ_PLAN_TYPE]),
+          // Modifikasi hook untuk membiarkan superuser lewat
+          preHandler: async (request, reply) => {
+            // Superuser bypass checks
+            if (request.user && request.user.is_superuser === true) {
+              fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
+              return;
+            }
+            
+            // Regular users go through permission check
+            await new Promise<void>((resolve, reject) => {
+              fastify.checkPermission(Resource.PLAN_TYPES, [Permission.CAN_READ_PLAN_TYPE, Permission.CAN_UPDATE_PLAN_TYPE])(request, reply, (err) => {
+                if (err) reject(err);
+                else resolve();
+              });
+            });
+          },
     schema: {
         tags: ['plan-types'],
         description: 'Edit plan type',

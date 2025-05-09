@@ -42,6 +42,4 @@ async function fetchMasterTypePosition() {
     await Promise.all(masterTypePositionPromises)
 }
 
-;(async () => {
-    await fetchMasterTypePosition().then(() => process.exit(0))
-})()
+fetchMasterTypePosition().then(() => process.exit(0))

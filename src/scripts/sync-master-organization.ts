@@ -63,6 +63,4 @@ async function fetchOrganizations() {
     await Promise.all(parentUpdatePromises)
 }
 
-;(async () => {
-    await fetchOrganizations().then(() => process.exit(0))
-})()
+fetchOrganizations().then(() => process.exit(0))

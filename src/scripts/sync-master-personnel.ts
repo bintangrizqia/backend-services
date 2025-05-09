@@ -47,6 +47,5 @@ async function fetchPersonnels() {
     await Promise.all(personnels)
 }
 
-;(async () => {
-    await fetchPersonnels().then(() => process.exit(0))
-})()
+
+fetchPersonnels().then(() => process.exit(0))

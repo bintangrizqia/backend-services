@@ -22,7 +22,7 @@ const organizationRoutes: FastifyPluginAsync = async (fastify) => {
     Querystring: GetOrganizationQuery
   }>('/', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing organization lists, bypassing permission check`);

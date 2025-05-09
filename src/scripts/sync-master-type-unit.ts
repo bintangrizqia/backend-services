@@ -34,6 +34,5 @@ async function fetchMasterTypeUnit() {
     await Promise.all(masterTypeUnitPromises)
 }
 
-;(async () => {
-    await fetchMasterTypeUnit().then(() => process.exit(0))
-})()
+
+fetchMasterTypeUnit().then(() => process.exit(0))

@@ -10,7 +10,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
   const groupController = new GroupController(fastify)
   const groupPermissionController = new GroupPermissionController(fastify)
 
-  server.addHook('preHandler', fastify.authenticate)
+  server.addHook('onRequest', fastify.authenticate)
     
 
   interface GetGroupQuery {
@@ -23,7 +23,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     Querystring: GetGroupQuery
   }>('/', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group list, bypassing permission check`);
@@ -74,7 +74,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     Params: GetGroupParams
   }>('/:id', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group list, bypassing permission check`);
@@ -130,7 +130,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     Body: CreateGroupRequest
   }>('/', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group list, bypassing permission check`);
@@ -188,7 +188,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     Body: UpdateGroupRequest
   }>('/:id', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
@@ -242,7 +242,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     Params: GetGroupParams
   }>('/:id', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group delete, bypassing permission check`);
@@ -277,7 +277,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     Params: GetGroupPermissionParams
   }>('/:group_id/permissions', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
@@ -323,7 +323,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     Body: CreateGroupPermissionRequest
   }>('/:group_id/permissions', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
@@ -373,7 +373,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
     Params: DeleteGroupPermissionParams
   }>('/:group_id/permissions/:permission_id', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
@@ -415,7 +415,7 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/assigns/:group_id/personnels', {
 
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);

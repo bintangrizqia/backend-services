@@ -14,7 +14,7 @@ const permissionRoutes: FastifyPluginAsync = async (fastify) => {
   
   server.get('/', {
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing permission list, bypassing permission check`);

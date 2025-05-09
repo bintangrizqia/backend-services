@@ -45,6 +45,5 @@ async function fetchPosition() {
     await Promise.all(positionUpserts)
 }
 
-;(async () => {
-    await fetchPosition().then(() => process.exit(0))
-})()
+
+fetchPosition().then(() => process.exit(0))

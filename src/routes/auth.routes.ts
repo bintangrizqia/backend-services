@@ -58,7 +58,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   }>('/register', {
 
       // Modifikasi hook untuk membiarkan superuser lewat
-      preValidation: async (request, reply) => {
+      preHandler: async (request, reply) => {
         // Superuser bypass checks
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing group edit, bypassing permission check`);
