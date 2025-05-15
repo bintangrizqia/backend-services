@@ -249,7 +249,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
     
     // Generate token with longer expiration for easier testing
     return jwt.sign(payload, jwtSecret, { 
-      expiresIn: '7d' // Extend to 7 days for testing
+      expiresIn: '30d' // Extend to 30 days for testing
     });
   }
   

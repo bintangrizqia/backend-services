@@ -48,15 +48,7 @@ const organizationRoutes: FastifyPluginAsync = async (fastify) => {
         }),
       response: {
         200: Type.Object({
-          data: Type.Array(
-            Type.Object({
-              id: Type.Number(),
-              unit: Type.String(),
-              name: Type.Union([Type.String(), Type.Null()]),
-              created_at: Type.String(),
-              updated_at: Type.String(),
-            })
-          ),
+          data: Type.Array(Type.Any()),
           meta: Type.Object({
             page: Type.Number(),
             limit: Type.Number(),
@@ -85,17 +77,7 @@ const organizationRoutes: FastifyPluginAsync = async (fastify) => {
         id: Type.Number()
       }),
       response: {
-        200: Type.Object({
-          id: Type.Number(),
-          name: Type.String(),
-          unit: Type.Object({
-            name: Type.String(),
-            created_at: Type.String(),
-            updated_at: Type.String(),
-          }),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-        })
+        200: Type.Any()
       },
     }
   }, organizationController.getOrganizationById.bind(organizationController))

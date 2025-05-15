@@ -29,12 +29,39 @@ export class OrganizationController extends BaseController {
       const where = search
         ? {
             name: { contains: search, mode: Prisma.QueryMode.insensitive },
+            active: true
           }
         : {};
 
       const units = await this.prisma.units.findMany({
         where,
         skip,
+        select: {
+          id: true,
+          name: true,
+          parent: {
+            where: {
+              active: true
+            },
+            select: {
+              id: true,
+              name: true,
+              created_at: true
+            },
+          },
+          position_type: true,
+          sub_units: {
+            where: {
+              active: true
+            },
+            select: {
+              id: true,
+              name: true,
+              created_at: true
+            }
+          },
+          created_at: true
+        },
         take: limit,
         orderBy: { created_at: "desc" },
       });
@@ -66,21 +93,36 @@ export class OrganizationController extends BaseController {
       const { id } = request.params;
 
       const organization = await this.prisma.units.findUnique({
-        where: { id },
+        where: {
+          id: id,
+          active: true
+        },
         select: {
           id: true,
           name: true,
           parent: {
+            where: {
+              active: true
+            },
             select: {
               id: true,
               name: true,
-              created_at: true,
-              updated_at: true,
+              created_at: true
             },
           },
-          created_at: true,
-          updated_at: true,
-        },
+          position_type: true,
+          sub_units: {
+            where: {
+              active: true
+            },
+            select: {
+              id: true,
+              name: true,
+              created_at: true
+            }
+          },
+          created_at: true
+        }
       });
 
       if (!organization) {
