@@ -55,6 +55,30 @@ export class GroupController extends BaseController {
       const groups = await this.prisma.groups.findMany({
         where,
         skip,
+        select: {
+          id: true,
+          name: true,
+          GroupPermissions: {
+            select: {
+              id: true,
+              resource: true,
+              permission: true
+            }
+          },
+          PersonnelGroups: {
+            select: {
+              personnel: {
+                select: {
+                  npp: true,
+                  name: true,
+                  is_superuser: true,
+                  created_at: true
+                }
+              }
+            }
+          },
+          created_at: true
+        },
         take: limit,
         orderBy: { created_at: 'desc' }
       })
@@ -81,14 +105,31 @@ export class GroupController extends BaseController {
 
       const group = await this.prisma.groups.findUnique({
         where: { id },
-        include: {
+        select: {
+          id: true,
+          name: true,
           GroupPermissions: {
             select: {
+              id: true,
               resource: true,
               permission: true
             }
-          }
-        }
+          },
+          PersonnelGroups: {
+            select: {
+              id: true,
+              personnel: {
+                select: {
+                  npp: true,
+                  name: true,
+                  is_superuser: true,
+                  created_at: true
+                }
+              }
+            }
+          },
+          created_at: true
+        },
       })
 
       if (!group) {
