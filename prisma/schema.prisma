@@ -102,7 +102,7 @@ model GroupPermissions {
   permission Permission
   created_at DateTime   @default(now())
 
-  group Groups @relation(fields: [group_id], references: [id])
+  group Groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
 }
 
 model PersonnelGroups {
