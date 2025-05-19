@@ -36,6 +36,12 @@ enum Permission {
   CAN_UPDATE_PLAN_TYPE
   CAN_READ_PLAN_TYPE
 
+
+  CAN_CREATE_PROGRAM
+  CAN_DELETE_PROGRAM
+  CAN_UPDATE_PROGRAM
+  CAN_READ_PROGRAM
+
   CAN_READ_PERMISSION
 }
 
@@ -46,6 +52,7 @@ enum Resource {
   GROUP
   PLAN_TYPES
   PERMISSION
+  PROGRAM
 }
 
 enum ActivityType {
@@ -253,11 +260,12 @@ model Performance_Management_Plan_Program {
   status       String
   created_by   String
   program_code String
-  active       Int
+  active       Boolean @default(true)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
   performance_management_plan_projects Performance_Management_Plan_Projects[]
+  @@index([name, year, status, program_code, active])
 }
 
 model Performance_Management_Plan_Transactions {
