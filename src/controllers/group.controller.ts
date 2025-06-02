@@ -312,17 +312,19 @@ export class GroupController extends BaseController {
         const personnel = await this.prisma.personnels.findUniqueOrThrow({
           where: {npp}
         }).catch((e: any) => {
-          return reply.status(500).send({
-            message: `Cannot find personnel with npp ${npp}`
-          })
+          // return reply.status(500).send({
+          //   message: `Cannot find personnel with npp ${npp}`
+          // })
+          throw e
         })
 
         const group = await this.prisma.groups.findUniqueOrThrow({
           where: {id: group_id}
         }).catch((e : any) => {
-          return reply.status(500).send({
-            message: `Cannot find group with id ${group_id}`
-          })
+          // return reply.status(500).send({
+          //   message: `Cannot find group with id ${group_id}`
+          // })
+          throw e
         })
 
         /**
@@ -365,9 +367,10 @@ export class GroupController extends BaseController {
             }
           }
         }).catch((e : any) => {
-          return reply.status(500).send({
-            message: `Failed to insert npp ${personnel.npp} to group ${group.name}`
-          })
+          // return reply.status(500).send({
+          //   message: `Failed to insert npp ${personnel.npp} to group ${group.name}`
+          // })
+          throw e
         })
 
         groups_personnels.push(personnel_groups)
