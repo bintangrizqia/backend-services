@@ -452,28 +452,28 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         personnels: Type.Array(Type.String())
       }),
       response: {
-        201: Type.Array(Type.Object({
-          personnel: Type.Object({
-            id: Type.String(),
-            npp: Type.String(),
-            name: Type.String(),
-            position: Type.Object({
-              id: Type.String(),
-              name: Type.String()
-            }),
-            unit: Type.Object({
-              id: Type.String(),
-              name: Type.String(),
-              parent: Type.Object({
-                id: Type.String(),
-                name: Type.String()
-              })
-            }),
-            eselon: Type.String(),
-            is_superuser: Type.String(),
-            updated_at: Type.String()
-          })
-        })),
+        // 201: Type.Array(Type.Object({
+        //   personnel: Type.Object({
+        //     id: Type.String(),
+        //     npp: Type.String(),
+        //     name: Type.String(),
+        //     position: Type.Object({
+        //       id: Type.String(),
+        //       name: Type.String()
+        //     }),
+        //     unit: Type.Object({
+        //       id: Type.String(),
+        //       name: Type.String(),
+        //       parent: Type.Object({
+        //         id: Type.String(),
+        //         name: Type.String()
+        //       })
+        //     }),
+        //     eselon: Type.String(),
+        //     is_superuser: Type.String(),
+        //     updated_at: Type.String()
+        //   })
+        // })),
         500: Type.Object({
           message: Type.String()
         }),
