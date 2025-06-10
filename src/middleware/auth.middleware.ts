@@ -45,7 +45,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
     try {
       // Check if user is superuser first
       const user = await fastify.prisma.personnels.findUnique({
-        where: { npp: userId },
+        where: { id: userId },
         select: { is_superuser: true }
       });
       
@@ -220,7 +220,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
   const generateToken = async (userId: string): Promise<string> => {
     // Get user basic info
     const user = await fastify.prisma.personnels.findUnique({
-      where: { npp: userId },
+      where: { id: userId },
       select: {
         npp: true,
         name: true,
