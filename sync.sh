@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e  # Stop on any error
 
+# Load environment variables
+set -a
+source .env
+set +a
+
 # Jalankan semua sync script secara berurutan
 echo "Running master type position..."
 npx tsx ./src/scripts/sync-master-type-position.ts
