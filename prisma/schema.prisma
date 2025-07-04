@@ -43,6 +43,17 @@ enum Permission {
   CAN_READ_PROGRAM
 
   CAN_READ_PERMISSION
+
+  CAN_CREATE_MANDATORY_TALENTA
+  CAN_READ_MANDATORY_TALENTA
+  CAN_UPDATE_MANDATORY_TALENTA
+  CAN_DELETE_MANDATORY_TALENTA
+
+  CAN_CREATE_ACCESS_PROJECT_TYPE
+  CAN_READ_ACCESS_PROJECT_TYPE
+  CAN_UPDATE_ACCESS_PROJECT_TYPE
+  CAN_DELETE_ACCESS_PROJECT_TYPE
+
 }
 
 enum Resource {
@@ -53,6 +64,8 @@ enum Resource {
   PLAN_TYPES
   PERMISSION
   PROGRAM
+  MANDATORY_TALENTA
+  ACCESS_PROJECT_TYPE
 }
 
 enum ActivityType {
@@ -177,6 +190,7 @@ model Units {
   Personnels Personnels[]
 
   @@index([name, position_type])
+
 }
 
 model MasterTypePositions {
@@ -222,8 +236,13 @@ model Performance_Management_Plan_Types {
   created_at                           DateTime                               @default(now())
   updated_at                           DateTime                               @updatedAt
   Performance_Management_Plan_Projects Performance_Management_Plan_Projects[]
+   
 
   @@index([name])
+
+  MandatoryTalenta                    MandatoryTalenta[] 
+  accessProjectTypes AccessProjectType[]
+
 }
 
 model Performance_Management_Plan_Projects {
@@ -250,6 +269,9 @@ model Performance_Management_Plan_Projects {
 
   performance_management_plan_transaction           Performance_Management_Plan_Transactions[] @relation("PerformanceManagementProjectRel")
   performance_management_plan_transaction_as_parent Performance_Management_Plan_Transactions[] @relation("PerformanceManagementProjectParentRel")
+
+  accessProjectTypes AccessProjectType[]
+
 }
 
 model Performance_Management_Plan_Program {
@@ -305,3 +327,38 @@ model Performance_Management_Plan_Transactions {
   performance_management_project        Performance_Management_Plan_Projects @relation("PerformanceManagementProjectRel", fields: [performance_management_project_id], references: [id], map: "fk_pmp_project")
   performance_management_project_parent Performance_Management_Plan_Projects @relation("PerformanceManagementProjectParentRel", fields: [performance_management_project_parent_id], references: [id], map: "fk_pmp_project_parent")
 }
+
+model MandatoryTalenta {
+  id          String   @id @default(uuid())
+  project     String
+  information String?
+  key         String
+  plan_type   Performance_Management_Plan_Types @relation(fields: [key], references: [id])
+  year        Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([key])
+} 
+
+model AccessProjectType {
+  id            String   @id @default(cuid())
+  keys          String
+  unit          String // BUKAN relasi
+  type          String
+  project_name  String
+  information   String
+  target        Int
+  year          Int
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  project       Performance_Management_Plan_Projects @relation(fields: [keys], references: [id])
+  typeRel       Performance_Management_Plan_Types   @relation(fields: [type], references: [id])
+
+  @@map("access_project_type")
+}
+
+ 
+
+

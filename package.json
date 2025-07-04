@@ -12,13 +12,13 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "@prisma/client": "^6.6.0",
+    "@prisma/client": "^6.8.1",
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.9",
     "@types/pg": "^8.11.11",
     "dotenv": "^16.5.0",
-    "prisma": "^6.6.0",
+    "prisma": "^6.8.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   },
