@@ -23,6 +23,8 @@ import activityLoggerMiddleware from './middleware/activity-logger.middleware'
 import routes from './routes'
 import mandatoryTalentaRoutes from './routes/mandatory-talenta.routes'
 import accessProjectRoutes from './routes/access-project.routes'
+import overviewDivisionRoutes from './routes/overview-division.routes'
+
 
 
 // Environmental schema
@@ -244,6 +246,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
    // ✅ Register route access project
   await app.register(accessProjectRoutes, { prefix: '/access-project-type' })
+
+  await app.register(overviewDivisionRoutes, { prefix: '/overview-division' })
+
 
   return app
 }

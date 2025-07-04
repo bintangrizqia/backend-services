@@ -66,6 +66,7 @@ enum Resource {
   PROGRAM
   MANDATORY_TALENTA
   ACCESS_PROJECT_TYPE
+  OVERVIEW_DIVISION
 }
 
 enum ActivityType {
@@ -99,6 +100,8 @@ model Personnels {
 
   unit     Units?     @relation(fields: [unit_id], references: [id])
   position Positions? @relation(fields: [position_id], references: [id])
+
+  overview_divisions OverviewDivision[]
 
   performance_management_plan_transactions_as_target Performance_Management_Plan_Transactions[] @relation("PersonnelTargetRelation")
   performance_management_plan_transactions_as_from   Performance_Management_Plan_Transactions[] @relation("PersonnelFromRelation")
@@ -272,6 +275,9 @@ model Performance_Management_Plan_Projects {
 
   accessProjectTypes AccessProjectType[]
 
+  overview_divisions OverviewDivision[]
+
+
 }
 
 model Performance_Management_Plan_Program {
@@ -288,6 +294,9 @@ model Performance_Management_Plan_Program {
 
   performance_management_plan_projects Performance_Management_Plan_Projects[]
   @@index([name, year, status, program_code, active])
+
+  overview_divisions OverviewDivision[]
+
 }
 
 model Performance_Management_Plan_Transactions {
@@ -326,6 +335,8 @@ model Performance_Management_Plan_Transactions {
 
   performance_management_project        Performance_Management_Plan_Projects @relation("PerformanceManagementProjectRel", fields: [performance_management_project_id], references: [id], map: "fk_pmp_project")
   performance_management_project_parent Performance_Management_Plan_Projects @relation("PerformanceManagementProjectParentRel", fields: [performance_management_project_parent_id], references: [id], map: "fk_pmp_project_parent")
+
+  overview_division OverviewDivision[] @relation("OverviewDivisionToTransaction")
 }
 
 model MandatoryTalenta {
@@ -358,6 +369,26 @@ model AccessProjectType {
 
   @@map("access_project_type")
 }
+
+model OverviewDivision {
+  id              String   @id @default(cuid())
+  personnel_id    String
+  program_id      String
+  project_id      String
+  transaction_id  String? // Optional: karena transaksi bisa lebih dari satu
+  due_date        DateTime?
+  information     String?
+  explanation     String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  personnel   Personnels                          @relation(fields: [personnel_id], references: [id])
+  program     Performance_Management_Plan_Program @relation(fields: [program_id], references: [id])
+  project     Performance_Management_Plan_Projects @relation(fields: [project_id], references: [id])
+  transaction Performance_Management_Plan_Transactions? @relation("OverviewDivisionToTransaction", fields: [transaction_id], references: [id])
+}
+
+
 
  
 
