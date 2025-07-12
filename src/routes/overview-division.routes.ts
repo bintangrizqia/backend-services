@@ -1,30 +1,32 @@
-// src/routes/overview-division.routes.ts
 import { FastifyInstance } from 'fastify'
 import { OverviewDivisionController } from '../controllers/overview-division.controller'
-import { Static, Type } from '@sinclair/typebox'
+import { Type } from '@sinclair/typebox'
 
-const GetOverviewDivisionQuery = Type.Object({
-  page: Type.Optional(Type.Integer({ minimum: 1 })),
-  limit: Type.Optional(Type.Integer({ minimum: 1 })),
-  search: Type.Optional(Type.String()),
-  personnel_id: Type.Optional(Type.String())
-})
+export default async function overviewDivisionRoutes(fastify: FastifyInstance) {
+  const controller = new OverviewDivisionController(fastify)
 
-export default async function overviewDivisionRoutes(server: FastifyInstance) {
-  const controller = new OverviewDivisionController(server)
-
-  server.get('/', {
+  await fastify.get('/overview-division', {
     schema: {
       tags: ['overview-division'],
-      querystring: GetOverviewDivisionQuery,
+      description: 'Get overview data for divisions by personnel',
+      querystring: Type.Object({
+        unit_id: Type.Optional(Type.Integer()),
+        program_id: Type.Optional(Type.String()),
+        page: Type.Optional(Type.Integer({ default: 1 })),
+        limit: Type.Optional(Type.Integer({ default: 10 }))
+      }),
       response: {
         200: Type.Object({
           data: Type.Array(Type.Any()),
-          meta: Type.Any()
+          meta: Type.Object({
+            page: Type.Integer(),
+            limit: Type.Integer(),
+            totalCount: Type.Integer(),
+            totalPages: Type.Integer()
+          })
         })
       }
     },
-    preHandler: [server.authenticate],
     handler: controller.getAllOverviewDivision.bind(controller)
   })
 }

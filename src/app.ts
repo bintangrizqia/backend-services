@@ -24,6 +24,7 @@ import routes from './routes'
 import mandatoryTalentaRoutes from './routes/mandatory-talenta.routes'
 import accessProjectRoutes from './routes/access-project.routes'
 import overviewDivisionRoutes from './routes/overview-division.routes'
+import statusRealisasiRoutes from './routes/status-realisasi.routes'
 
 
 
@@ -248,6 +249,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(accessProjectRoutes, { prefix: '/access-project-type' })
 
   await app.register(overviewDivisionRoutes, { prefix: '/overview-division' })
+
+  await app.register(statusRealisasiRoutes, { prefix: '/status-realisasi' })
 
 
   return app

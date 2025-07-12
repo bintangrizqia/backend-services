@@ -54,6 +54,11 @@ enum Permission {
   CAN_UPDATE_ACCESS_PROJECT_TYPE
   CAN_DELETE_ACCESS_PROJECT_TYPE
 
+  CAN_CREATE_STATUS_REALISASI
+  CAN_READ_STATUS_REALISASI
+  CAN_UPDATE_STATUS_REALISASI
+  CAN_DELETE_STATUS_REALISASI
+
 }
 
 enum Resource {
@@ -67,6 +72,7 @@ enum Resource {
   MANDATORY_TALENTA
   ACCESS_PROJECT_TYPE
   OVERVIEW_DIVISION
+  STATUS_REALISASI
 }
 
 enum ActivityType {
@@ -387,6 +393,16 @@ model OverviewDivision {
   project     Performance_Management_Plan_Projects @relation(fields: [project_id], references: [id])
   transaction Performance_Management_Plan_Transactions? @relation("OverviewDivisionToTransaction", fields: [transaction_id], references: [id])
 }
+
+model StatusRealisasi {
+  id                     Int      @id @default(autoincrement())
+  nama_status_realisasi String
+  kode_warna_realisasi  String
+  keterangan            String
+  created_by            String
+  created_date          DateTime @default(now())
+}
+
 
 
 
