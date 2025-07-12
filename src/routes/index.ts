@@ -6,6 +6,7 @@ import activityLogRoutes from './activity-log.routes'
 import organizationRoutes from './organization.routes'
 import planTypeRoutes from './performance.management.plan.types.routes'
 import permissionRoutes from './permission.routes'
+import programRoutes from './performance.management.program.routes'
 
 const routes: FastifyPluginAsync = async (fastify, options) => {
   // Auth routes
@@ -39,6 +40,9 @@ const routes: FastifyPluginAsync = async (fastify, options) => {
 
   await fastify.register(permissionRoutes, {
     prefix: '/permissions'
+  })
+  await fastify.register(programRoutes, {
+    prefix: '/programs'
   })
   
   // Add ping route directly to the root

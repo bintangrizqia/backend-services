@@ -125,9 +125,14 @@ export class GroupPermissionController extends BaseController {
 
       await this.prisma.groupPermissions.delete({
         where: { id: permission_id }
+      }).catch((e) => {
+        throw new Error(`Permissions in groups failed to delete : ${permission_id}`)
       })
 
-      return reply.status(204).send()
+      return reply.status(200).send({
+        status: "ok",
+        message: "Permissions in groups already deleted!"
+      })
     } catch (error) {
       return this.handleError(error, reply, 'Failed to delete group permission')
     }

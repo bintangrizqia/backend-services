@@ -1,7 +1,7 @@
 export default {
-    DATABASE_HRIS_HOST: "192.168.11.52",
-    DATABASE_HRIS_PORT: 5432,
-    DATABASE_HRIS_USER: "dandi",
-    DATABASE_HRIS_PASSWORD: "dandi123!",
-    DATABASE_HRIS_NAME: "payroll_db"
+    DATABASE_HRIS_HOST: <string>process.env.DATABASE_HRIS_HOST,
+    DATABASE_HRIS_PORT: parseInt(<string>process.env.DATABASE_HRIS_PORT),
+    DATABASE_HRIS_USER: <string>process.env.DATABASE_HRIS_USER,
+    DATABASE_HRIS_PASSWORD: <string>process.env.DATABASE_HRIS_PASSWORD,
+    DATABASE_HRIS_NAME: <string>process.env.DATABASE_HRIS_NAME
 }

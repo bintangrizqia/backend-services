@@ -45,7 +45,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
     try {
       // Check if user is superuser first
       const user = await fastify.prisma.personnels.findUnique({
-        where: { npp: userId },
+        where: { id: userId },
         select: { is_superuser: true }
       });
       
@@ -220,7 +220,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
   const generateToken = async (userId: string): Promise<string> => {
     // Get user basic info
     const user = await fastify.prisma.personnels.findUnique({
-      where: { npp: userId },
+      where: { id: userId },
       select: {
         npp: true,
         name: true,
@@ -249,7 +249,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
     
     // Generate token with longer expiration for easier testing
     return jwt.sign(payload, jwtSecret, { 
-      expiresIn: '7d' // Extend to 7 days for testing
+      expiresIn: '30d' // Extend to 30 days for testing
     });
   }
   

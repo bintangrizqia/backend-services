@@ -74,7 +74,7 @@ export class AuthController extends BaseController {
       }
 
       // Generate JWT token with embedded permissions
-      const token = await this.fastify.generateToken(user.npp)
+      const token = await this.fastify.generateToken(user.id)
 
       // Return user data and token
       return this.sendResponse(reply, {

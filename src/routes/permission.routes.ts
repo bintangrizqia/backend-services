@@ -35,12 +35,7 @@ const permissionRoutes: FastifyPluginAsync = async (fastify) => {
         security: [{ bearerAuth: [] }],
       response: {
         200: Type.Object({
-          data: Type.Array(
-            Type.Object({
-                permissions: Type.Any(),
-                resources: Type.Any()
-            })
-          )
+          permissions: Type.Array(Type.String())
         })
       }
     }

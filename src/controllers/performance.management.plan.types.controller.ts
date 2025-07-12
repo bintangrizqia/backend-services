@@ -1,7 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
-import { Prisma } from '@prisma/client'
-import { error } from 'console'
 
 
 interface GetPlanTypes {

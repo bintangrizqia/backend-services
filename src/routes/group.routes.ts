@@ -47,14 +47,24 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
       }),
       response: {
         200: Type.Object({
-          data: Type.Array(
-            Type.Object({
+          data: Type.Array(Type.Object({
+            id: Type.String(),
+            name: Type.String(),
+            GroupPermissions: Type.Array(Type.Object({
               id: Type.String(),
-              name: Type.String(),
-              created_at: Type.String(),
-              updated_at: Type.String(),
-            })
-          ),
+              resource: Type.String(),
+              permission: Type.String()
+            })),
+            PersonnelGroups: Type.Array(Type.Object({
+              personnel: Type.Array(Type.Object({
+                npp: Type.String(),
+                name: Type.String(),
+                is_superuser: Type.Boolean(),
+                created_at: Type.String()
+              }))
+            })),
+            created_at: Type.String()
+          })),
           meta: Type.Object({
             page: Type.Number(),
             limit: Type.Number(),
@@ -98,17 +108,20 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         200: Type.Object({
           id: Type.String(),
           name: Type.String(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-          GroupPermissions: Type.Array(
-            Type.Object({
-              id: Type.String(),
-              group_id: Type.String(),
-              resource: Type.String(),
-              permission: Type.String(),
+          GroupPermissions: Type.Array(Type.Object({
+            id: Type.String(),
+            resource: Type.String(),
+            permission: Type.String()
+          })),
+          PersonnelGroups: Type.Array(Type.Object({
+            personnel: Type.Array(Type.Object({
+              npp: Type.String(),
+              name: Type.String(),
+              is_superuser: Type.Boolean(),
               created_at: Type.String()
-            })
-          )
+            }))
+          })),
+          created_at: Type.String()
         })
       },
       security: [{ bearerAuth: [] }]
@@ -439,28 +452,28 @@ const groupRoutes: FastifyPluginAsync = async (fastify) => {
         personnels: Type.Array(Type.String())
       }),
       response: {
-        201: Type.Array(Type.Object({
-          personnel: Type.Object({
-            id: Type.String(),
-            npp: Type.String(),
-            name: Type.String(),
-            position: Type.Object({
-              id: Type.String(),
-              name: Type.String()
-            }),
-            unit: Type.Object({
-              id: Type.String(),
-              name: Type.String(),
-              parent: Type.Object({
-                id: Type.String(),
-                name: Type.String()
-              })
-            }),
-            eselon: Type.String(),
-            is_superuser: Type.String(),
-            updated_at: Type.String()
-          })
-        })),
+        // 201: Type.Array(Type.Object({
+        //   personnel: Type.Object({
+        //     id: Type.String(),
+        //     npp: Type.String(),
+        //     name: Type.String(),
+        //     position: Type.Object({
+        //       id: Type.String(),
+        //       name: Type.String()
+        //     }),
+        //     unit: Type.Object({
+        //       id: Type.String(),
+        //       name: Type.String(),
+        //       parent: Type.Object({
+        //         id: Type.String(),
+        //         name: Type.String()
+        //       })
+        //     }),
+        //     eselon: Type.String(),
+        //     is_superuser: Type.String(),
+        //     updated_at: Type.String()
+        //   })
+        // })),
         500: Type.Object({
           message: Type.String()
         }),

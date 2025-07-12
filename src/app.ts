@@ -21,6 +21,12 @@ import authMiddleware from './middleware/auth.middleware'
 import permissionMiddleware from './middleware/permission.middleware'
 import activityLoggerMiddleware from './middleware/activity-logger.middleware'
 import routes from './routes'
+import mandatoryTalentaRoutes from './routes/mandatory-talenta.routes'
+import accessProjectRoutes from './routes/access-project.routes'
+import overviewDivisionRoutes from './routes/overview-division.routes'
+import statusRealisasiRoutes from './routes/status-realisasi.routes'
+
+
 
 // Environmental schema
 const schema = {
@@ -29,7 +35,7 @@ const schema = {
   properties: {
     PORT: {
       type: 'string',
-      default: '3000'
+      default: '3002'
     },
     HOST: {
       type: 'string',
@@ -91,6 +97,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         { name: 'plan-types', description: 'Plan types management operations' },
         { name: 'utility', description: 'Utility endpoints' },
         { name: 'organizations', description: 'Organizations endpoints' },
+        { name: 'mandatory-talenta', description: 'Mandatory talenta management operations' },
 
       ]
     }
@@ -232,8 +239,19 @@ export async function buildApp(): Promise<FastifyInstance> {
     };
   });
 
-  // Register main routes
+   // 🔸 Register route utama
   await app.register(routes)
+
+  // ✅ PENTING: Register mandatoryTalenta route di sini
+  await app.register(mandatoryTalentaRoutes, { prefix: '/mandatory-talenta' })
+
+   // ✅ Register route access project
+  await app.register(accessProjectRoutes, { prefix: '/access-project-type' })
+
+  await app.register(overviewDivisionRoutes, { prefix: '/overview-division' })
+
+  await app.register(statusRealisasiRoutes, { prefix: '/status-realisasi' })
+
 
   return app
 }

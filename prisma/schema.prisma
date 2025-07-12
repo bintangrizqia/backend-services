@@ -36,7 +36,29 @@ enum Permission {
   CAN_UPDATE_PLAN_TYPE
   CAN_READ_PLAN_TYPE
 
+
+  CAN_CREATE_PROGRAM
+  CAN_DELETE_PROGRAM
+  CAN_UPDATE_PROGRAM
+  CAN_READ_PROGRAM
+
   CAN_READ_PERMISSION
+
+  CAN_CREATE_MANDATORY_TALENTA
+  CAN_READ_MANDATORY_TALENTA
+  CAN_UPDATE_MANDATORY_TALENTA
+  CAN_DELETE_MANDATORY_TALENTA
+
+  CAN_CREATE_ACCESS_PROJECT_TYPE
+  CAN_READ_ACCESS_PROJECT_TYPE
+  CAN_UPDATE_ACCESS_PROJECT_TYPE
+  CAN_DELETE_ACCESS_PROJECT_TYPE
+
+  CAN_CREATE_STATUS_REALISASI
+  CAN_READ_STATUS_REALISASI
+  CAN_UPDATE_STATUS_REALISASI
+  CAN_DELETE_STATUS_REALISASI
+
 }
 
 enum Resource {
@@ -46,6 +68,11 @@ enum Resource {
   GROUP
   PLAN_TYPES
   PERMISSION
+  PROGRAM
+  MANDATORY_TALENTA
+  ACCESS_PROJECT_TYPE
+  OVERVIEW_DIVISION
+  STATUS_REALISASI
 }
 
 enum ActivityType {
@@ -80,6 +107,8 @@ model Personnels {
   unit     Units?     @relation(fields: [unit_id], references: [id])
   position Positions? @relation(fields: [position_id], references: [id])
 
+  overview_divisions OverviewDivision[]
+
   performance_management_plan_transactions_as_target Performance_Management_Plan_Transactions[] @relation("PersonnelTargetRelation")
   performance_management_plan_transactions_as_from   Performance_Management_Plan_Transactions[] @relation("PersonnelFromRelation")
 
@@ -102,7 +131,7 @@ model GroupPermissions {
   permission Permission
   created_at DateTime   @default(now())
 
-  group Groups @relation(fields: [group_id], references: [id])
+  group Groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
 }
 
 model PersonnelGroups {
@@ -170,6 +199,7 @@ model Units {
   Personnels Personnels[]
 
   @@index([name, position_type])
+
 }
 
 model MasterTypePositions {
@@ -215,8 +245,13 @@ model Performance_Management_Plan_Types {
   created_at                           DateTime                               @default(now())
   updated_at                           DateTime                               @updatedAt
   Performance_Management_Plan_Projects Performance_Management_Plan_Projects[]
+   
 
   @@index([name])
+
+  MandatoryTalenta                    MandatoryTalenta[] 
+  accessProjectTypes AccessProjectType[]
+
 }
 
 model Performance_Management_Plan_Projects {
@@ -243,6 +278,12 @@ model Performance_Management_Plan_Projects {
 
   performance_management_plan_transaction           Performance_Management_Plan_Transactions[] @relation("PerformanceManagementProjectRel")
   performance_management_plan_transaction_as_parent Performance_Management_Plan_Transactions[] @relation("PerformanceManagementProjectParentRel")
+
+  accessProjectTypes AccessProjectType[]
+
+  overview_divisions OverviewDivision[]
+
+
 }
 
 model Performance_Management_Plan_Program {
@@ -253,11 +294,15 @@ model Performance_Management_Plan_Program {
   status       String
   created_by   String
   program_code String
-  active       Int
+  active       Boolean @default(true)
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
   performance_management_plan_projects Performance_Management_Plan_Projects[]
+  @@index([name, year, status, program_code, active])
+
+  overview_divisions OverviewDivision[]
+
 }
 
 model Performance_Management_Plan_Transactions {
@@ -296,4 +341,71 @@ model Performance_Management_Plan_Transactions {
 
   performance_management_project        Performance_Management_Plan_Projects @relation("PerformanceManagementProjectRel", fields: [performance_management_project_id], references: [id], map: "fk_pmp_project")
   performance_management_project_parent Performance_Management_Plan_Projects @relation("PerformanceManagementProjectParentRel", fields: [performance_management_project_parent_id], references: [id], map: "fk_pmp_project_parent")
+
+  overview_division OverviewDivision[] @relation("OverviewDivisionToTransaction")
 }
+
+model MandatoryTalenta {
+  id          String   @id @default(uuid())
+  project     String
+  information String?
+  key         String
+  plan_type   Performance_Management_Plan_Types @relation(fields: [key], references: [id])
+  year        Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([key])
+} 
+
+model AccessProjectType {
+  id            String   @id @default(cuid())
+  keys          String
+  unit          String // BUKAN relasi
+  type          String
+  project_name  String
+  information   String
+  target        Int
+  year          Int
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  project       Performance_Management_Plan_Projects @relation(fields: [keys], references: [id])
+  typeRel       Performance_Management_Plan_Types   @relation(fields: [type], references: [id])
+
+  @@map("access_project_type")
+}
+
+model OverviewDivision {
+  id              String   @id @default(cuid())
+  personnel_id    String
+  program_id      String
+  project_id      String
+  transaction_id  String? // Optional: karena transaksi bisa lebih dari satu
+  due_date        DateTime?
+  information     String?
+  explanation     String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  personnel   Personnels                          @relation(fields: [personnel_id], references: [id])
+  program     Performance_Management_Plan_Program @relation(fields: [program_id], references: [id])
+  project     Performance_Management_Plan_Projects @relation(fields: [project_id], references: [id])
+  transaction Performance_Management_Plan_Transactions? @relation("OverviewDivisionToTransaction", fields: [transaction_id], references: [id])
+}
+
+model StatusRealisasi {
+  id                     Int      @id @default(autoincrement())
+  nama_status_realisasi String
+  kode_warna_realisasi  String
+  keterangan            String
+  created_by            String
+  created_date          DateTime @default(now())
+}
+
+
+
+
+ 
+
+
