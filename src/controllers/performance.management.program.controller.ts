@@ -2,7 +2,6 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
 import { Prisma } from "@prisma/client";
 
-
 interface GetProgramTypes {
   id: string
 }
@@ -14,17 +13,16 @@ interface GetProgramQueryParams {
 }
 
 interface CreateProgramBody {
-    name: string
-    description: string | null
-    year: number
-    status: string
-    program_code: string
-    created_by: string
-
+  name: string
+  description: string | null
+  year: number
+  status: string
+  program_code: string
+  created_by: string
 }
 
 interface DeleteProgramParams {
-    id: string
+  id: string
 }
 
 export class ProgramController extends BaseController {
@@ -33,48 +31,44 @@ export class ProgramController extends BaseController {
   }
 
   /**
-   * Create plan types
-   * @param request 
-   * @param reply 
+   * Create program
    */
-  async createProgram(request: FastifyRequest<{Body: CreateProgramBody}>, reply: FastifyReply) {
+  async createProgram(request: FastifyRequest<{ Body: CreateProgramBody }>, reply: FastifyReply) {
     try {
-        const { name, description, year, created_by, status, program_code } = request.body
+      const { name, description, year, created_by, status, program_code } = request.body
 
-        const program = await this.prisma.performance_Management_Plan_Program.create({
-            data: {name, description, year, created_by, status, program_code},
-        }).catch((error: any) => {
-            return this.handleError(error, reply, "Failed to create program")
-        })
+      const program = await this.prisma.performance_Management_Plan_Program.create({
+        data: { name, description, year, created_by, status, program_code },
+      }).catch((error: any) => {
+        return this.handleError(error, reply, "Failed to create program")
+      })
 
-        return this.sendResponse(reply, program)
+      return this.sendResponse(reply, program)
     } catch (error) {
-        return this.handleError(error, reply, 'Failed to retrieve program')
-    }
-  }
-
-/**
- * Delete plan types
- * @param request 
- * @param reply 
- */
-  async deleteProgram(request: FastifyRequest<{Params: DeleteProgramParams }>, reply: FastifyReply) {
-    try {
-        const {id} = request.params
-
-        await this.prisma.performance_Management_Plan_Program.delete({
-            where: {id}
-        })
-        return reply.status(200).send({
-            message: 'Program was deleted.'
-        })
-    } catch (error) {
-        return this.handleError(error, reply, 'Failed to delete program')
+      return this.handleError(error, reply, 'Failed to retrieve program')
     }
   }
 
   /**
-   * Get all plan types with pagination and search
+   * Delete program
+   */
+  async deleteProgram(request: FastifyRequest<{ Params: DeleteProgramParams }>, reply: FastifyReply) {
+    try {
+      const { id } = request.params
+
+      await this.prisma.performance_Management_Plan_Program.delete({
+        where: { id }
+      })
+      return reply.status(200).send({
+        message: 'Program was deleted.'
+      })
+    } catch (error) {
+      return this.handleError(error, reply, 'Failed to delete program')
+    }
+  }
+
+  /**
+   * Get all programs with pagination and search
    */
   async getAllProgram(request: FastifyRequest<{ Querystring: GetProgramQueryParams }>, reply: FastifyReply) {
     try {
@@ -83,27 +77,29 @@ export class ProgramController extends BaseController {
 
       const where = search
         ? {
-            name: { contains: search, mode: Prisma.QueryMode.insensitive },
-            program_code: { contains: search, mode: Prisma.QueryMode.insensitive },
-            status: { contains: search, mode: Prisma.QueryMode.insensitive },
-          }
+          OR: [
+            { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { program_code: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { status: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          ]
+        }
         : {}
+
       const programs = await this.prisma.performance_Management_Plan_Program.findMany({
         where,
         skip,
         select: {
-            id: true,
-            name: true,
-            description: true,
-            year: true,
-            status: true,
-            program_code: true,
-            created_at: true
+          id: true,
+          name: true,
+          description: true,
+          year: true,
+          status: true,
+          program_code: true,
+          created_at: true
         },
         take: limit
-      })  
+      })
 
-      // Get total count for pagination
       const totalCount = await this.prisma.performance_Management_Plan_Program.count({ where })
 
       return this.sendResponse(reply, {
@@ -115,14 +111,13 @@ export class ProgramController extends BaseController {
           totalPages: Math.ceil(totalCount / limit)
         }
       })
-      
     } catch (error) {
       return this.handleError(error, reply, 'Failed to retrieve programs')
     }
   }
 
   /**
-   * Get plan types by ID
+   * Get program by ID
    */
   async GetProgramById(request: FastifyRequest<{ Params: GetProgramTypes }>, reply: FastifyReply) {
     try {
@@ -131,13 +126,13 @@ export class ProgramController extends BaseController {
       const plan_type = await this.prisma.performance_Management_Plan_Program.findUnique({
         where: { id },
         select: {
-            id: true,
-            name: true,
-            description: true,
-            year: true,
-            status: true,
-            program_code: true,
-            created_at: true,
+          id: true,
+          name: true,
+          description: true,
+          year: true,
+          status: true,
+          program_code: true,
+          created_at: true,
         }
       })
 
@@ -154,41 +149,59 @@ export class ProgramController extends BaseController {
     }
   }
 
-
   /**
-   * Edit plan types
-   * @param request 
-   * @param reply 
+   * Edit program
    */
-  async editProgram(request: FastifyRequest<{Params: GetProgramTypes, Body: CreateProgramBody}>, reply: FastifyReply) {
+  async editProgram(request: FastifyRequest<{ Params: GetProgramTypes, Body: CreateProgramBody }>, reply: FastifyReply) {
     try {
-        const {id} = request.params
-        const {name, description, program_code, status} = request.body
+      const { id } = request.params
+      const { name, description, program_code, status } = request.body
 
-        const plan_type = await this.prisma.performance_Management_Plan_Program.update({
-            where: {id},
-            data: {
-                name: name || undefined,
-                description: description || undefined,
-                program_code: program_code || undefined,
-                status: status || undefined
-            },
-            select: {
-                id: true,
-                name: true,
-                description: true,
-                year: true,
-                status: true,
-                program_code: true,
-                created_at: true,
-            }
-        })
+      const plan_type = await this.prisma.performance_Management_Plan_Program.update({
+        where: { id },
+        data: {
+          name: name || undefined,
+          description: description || undefined,
+          program_code: program_code || undefined,
+          status: status || undefined
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          year: true,
+          status: true,
+          program_code: true,
+          created_at: true,
+        }
+      })
 
-        return this.sendResponse(reply, plan_type)
+      return this.sendResponse(reply, plan_type)
     } catch (error) {
       return this.handleError(error, reply, 'Failed to retrieve plan type')
-        
     }
   }
+
+  /**
+ * Get program options (id and name only)
+ */
+async getProgramOptions(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const programs = await this.prisma.performance_Management_Plan_Program.findMany({
+      select: {
+        id: true,
+        name: true
+      },
+      orderBy: {
+        name: 'asc'
+      }
+    })
+
+    return this.sendResponse(reply, { data: programs })
+  } catch (error) {
+    return this.handleError(error, reply, 'Failed to retrieve program options')
+  }
+}
+
 
 }

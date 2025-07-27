@@ -4,6 +4,7 @@ import { Type } from '@sinclair/typebox'
 import { ProgramController } from '../controllers/performance.management.program.controller'
 import { Resource, Permission } from '@prisma/client'
 
+
 const programRoutes: FastifyPluginAsync = async (fastify) => {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>()
   const programController = new ProgramController(fastify)
@@ -69,6 +70,40 @@ const programRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
   }, programController.getAllProgram.bind(programController))
+  
+    server.get('/options', {
+    preHandler: async (request, reply) => {
+      // Superuser bypass checks
+      if (request.user && request.user.is_superuser === true) {
+        fastify.log.info(`Superuser ${request.user.npp} accessing program options, bypassing permission check`)
+        return
+      }
+
+      // Regular users go through permission check
+      await new Promise<void>((resolve, reject) => {
+        fastify.checkPermission(Resource.PROGRAM, Permission.CAN_READ_PROGRAM)(request, reply, (err) => {
+          if (err) reject(err)
+          else resolve()
+        })
+      })
+    },
+    schema: {
+      tags: ['program'],
+      description: 'Mendapatkan daftar id dan name dari program',
+      security: [{ bearerAuth: [] }],
+      response: {
+        200: Type.Object({
+          data: Type.Array(
+            Type.Object({
+              id: Type.String(),
+              name: Type.String()
+            })
+          )
+        })
+      }
+    }
+  }, programController.getProgramOptions.bind(programController))
+
 
   // Get personnel by ID
   interface GetPlanTypeParams {

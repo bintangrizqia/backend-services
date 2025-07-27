@@ -88,6 +88,41 @@ const personnelRoutes: FastifyPluginAsync = async (fastify) => {
     }
   }, personnelController.getAllPersonnel.bind(personnelController))
 
+  interface GetPersonnelOptionsQuery {
+  eselon?: string
+}
+
+server.get<{ Querystring: GetPersonnelOptionsQuery }>('/options', {
+  preHandler: async (request, reply) => {
+    if (request.user?.is_superuser) return
+
+    await new Promise<void>((resolve, reject) => {
+      fastify.checkPermission(Resource.PERSONNEL, Permission.CAN_READ_PERSONNEL)(
+        request, reply, (err) => (err ? reject(err) : resolve())
+      )
+    })
+  },
+  schema: {
+    tags: ['personnel'],
+    description: 'Get list of personnel (npp and name only)',
+    security: [{ bearerAuth: [] }],
+    querystring: Type.Object({
+      eselon: Type.Optional(Type.String())
+    }),
+    response: {
+      200: Type.Object({
+        data: Type.Array(
+          Type.Object({
+            npp: Type.String(),
+            name: Type.String()
+          })
+        )
+      })
+    }
+  }
+}, personnelController.getPersonnelOptions.bind(personnelController))
+
+
   // Get personnel by ID
   interface GetPersonnelParams {
     npp: string;

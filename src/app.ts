@@ -25,6 +25,7 @@ import mandatoryTalentaRoutes from './routes/mandatory-talenta.routes'
 import accessProjectRoutes from './routes/access-project.routes'
 import overviewDivisionRoutes from './routes/overview-division.routes'
 import statusRealisasiRoutes from './routes/status-realisasi.routes'
+import programRoutes from './routes/performance.management.program.routes'
 
 
 
@@ -242,16 +243,15 @@ export async function buildApp(): Promise<FastifyInstance> {
    // 🔸 Register route utama
   await app.register(routes)
 
-  // ✅ PENTING: Register mandatoryTalenta route di sini
   await app.register(mandatoryTalentaRoutes, { prefix: '/mandatory-talenta' })
 
-   // ✅ Register route access project
   await app.register(accessProjectRoutes, { prefix: '/access-project-type' })
 
   await app.register(overviewDivisionRoutes, { prefix: '/overview-division' })
 
   await app.register(statusRealisasiRoutes, { prefix: '/status-realisasi' })
 
-
+  await app.register(programRoutes, { prefix: '/program' })
+  
   return app
 }

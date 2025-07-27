@@ -382,6 +382,7 @@ model OverviewDivision {
   program_id      String
   project_id      String
   transaction_id  String? // Optional: karena transaksi bisa lebih dari satu
+  status_id       Int?
   due_date        DateTime?
   information     String?
   explanation     String?
@@ -392,6 +393,7 @@ model OverviewDivision {
   program     Performance_Management_Plan_Program @relation(fields: [program_id], references: [id])
   project     Performance_Management_Plan_Projects @relation(fields: [project_id], references: [id])
   transaction Performance_Management_Plan_Transactions? @relation("OverviewDivisionToTransaction", fields: [transaction_id], references: [id])
+  status          StatusRealisasi?                    @relation(fields: [status_id], references: [id])
 }
 
 model StatusRealisasi {
@@ -401,6 +403,8 @@ model StatusRealisasi {
   keterangan            String
   created_by            String
   created_date          DateTime @default(now())
+
+  overviewDivisions     OverviewDivision[]
 }
 
 
