@@ -26,6 +26,7 @@ import accessProjectRoutes from './routes/access-project.routes'
 import overviewDivisionRoutes from './routes/overview-division.routes'
 import statusRealisasiRoutes from './routes/status-realisasi.routes'
 import programRoutes from './routes/performance.management.program.routes'
+import planProjectRoutes from './routes/plan-project.routes'
 
 
 
@@ -252,6 +253,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(statusRealisasiRoutes, { prefix: '/status-realisasi' })
 
   await app.register(programRoutes, { prefix: '/program' })
+
+  await app.register(planProjectRoutes, { prefix: '/project' })
   
   return app
 }

@@ -1,14 +1,56 @@
+// Final: Route & Controller - Access Project Type
+
+// ROUTES - access-project.routes.ts
 import { FastifyPluginAsync } from 'fastify'
 import { AccessProjectTypeController } from '../controllers/access-project.controller'
 
 const accessProjectTypeRoutes: FastifyPluginAsync = async (fastify) => {
   const controller = new AccessProjectTypeController(fastify)
 
-  // POST - Create access project type
+  const accessProjectTypeSchema = {
+    type: 'object',
+    properties: {
+      id: { type: 'string' },
+      keys: { type: 'string' },
+      unit: { type: 'string' },
+      type: { type: 'string' },
+      project_name: { type: 'string' },
+      information: { type: 'string' },
+      target: { type: 'number' },
+      year: { type: 'number' },
+      created_at: { type: 'string' },
+      updated_at: { type: 'string' },
+      project: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+        },
+        nullable: true,
+      },
+      typeRel: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          description: { type: 'string' },
+        },
+        nullable: true,
+      },
+    },
+  }
+
+  const responseWrapper = {
+    type: 'object',
+    properties: {
+      success: { type: 'boolean' },
+      data: accessProjectTypeSchema,
+    },
+  }
+
   fastify.post('/create', {
     schema: {
       tags: ['access-project-type'],
-      description: 'Create new access project type',
       body: {
         type: 'object',
         properties: {
@@ -22,36 +64,18 @@ const accessProjectTypeRoutes: FastifyPluginAsync = async (fastify) => {
         },
         required: ['keys', 'unit', 'type', 'project_name', 'target', 'year'],
       },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            keys: { type: 'string' },
-            unit: { type: 'string' },
-            type: { type: 'string' },
-            project_name: { type: 'string' },
-            information: { type: 'string' },
-            target: { type: 'number' },
-            year: { type: 'number' },
-            created_at: { type: 'string' },
-            updated_at: { type: 'string' },
-          },
-        },
-      },
+      response: { 200: responseWrapper },
     },
   }, controller.createAccessProjectType.bind(controller))
 
-  // GET - Get all access project types with pagination and search
   fastify.get('/', {
     schema: {
       tags: ['access-project-type'],
-      description: 'Get all access project types with pagination and search',
       querystring: {
         type: 'object',
         properties: {
-          page: { type: 'number', minimum: 1 },
-          limit: { type: 'number', minimum: 1, maximum: 100 },
+          page: { type: 'number' },
+          limit: { type: 'number' },
           search: { type: 'string' },
         },
       },
@@ -59,23 +83,10 @@ const accessProjectTypeRoutes: FastifyPluginAsync = async (fastify) => {
         200: {
           type: 'object',
           properties: {
+            success: { type: 'boolean' },
             data: {
               type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  keys: { type: 'string' },
-                  unit: { type: 'string' },
-                  type: { type: 'string' },
-                  project_name: { type: 'string' },
-                  information: { type: 'string' },
-                  target: { type: 'number' },
-                  year: { type: 'number' },
-                  created_at: { type: 'string' },
-                  updated_at: { type: 'string' },
-                },
-              },
+              items: accessProjectTypeSchema,
             },
             meta: {
               type: 'object',
@@ -92,38 +103,20 @@ const accessProjectTypeRoutes: FastifyPluginAsync = async (fastify) => {
     },
   }, controller.getAllAccessProjectType.bind(controller))
 
-  // GET - Get access project type by ID
   fastify.get('/:id', {
     schema: {
       tags: ['access-project-type'],
-      description: 'Get access project type by ID',
       params: {
         type: 'object',
-        properties: {
-          id: { type: 'string' },
-        },
+        properties: { id: { type: 'string' } },
         required: ['id'],
       },
       response: {
-        200: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            keys: { type: 'string' },
-            unit: { type: 'string' },
-            type: { type: 'string' },
-            project_name: { type: 'string' },
-            information: { type: 'string' },
-            target: { type: 'number' },
-            year: { type: 'number' },
-            created_at: { type: 'string' },
-            updated_at: { type: 'string' },
-          },
-        },
+        200: responseWrapper,
         404: {
           type: 'object',
           properties: {
-            error: { type: 'string' },
+            success: { type: 'boolean' },
             message: { type: 'string' },
           },
         },
@@ -131,16 +124,12 @@ const accessProjectTypeRoutes: FastifyPluginAsync = async (fastify) => {
     },
   }, controller.getAccessProjectTypeById.bind(controller))
 
-  // PUT - Edit access project type
   fastify.put('/:id', {
     schema: {
       tags: ['access-project-type'],
-      description: 'Edit access project type',
       params: {
         type: 'object',
-        properties: {
-          id: { type: 'string' },
-        },
+        properties: { id: { type: 'string' } },
         required: ['id'],
       },
       body: {
@@ -156,44 +145,22 @@ const accessProjectTypeRoutes: FastifyPluginAsync = async (fastify) => {
         },
         required: ['keys', 'unit', 'type', 'project_name', 'target', 'year'],
       },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            keys: { type: 'string' },
-            unit: { type: 'string' },
-            type: { type: 'string' },
-            project_name: { type: 'string' },
-            information: { type: 'string' },
-            target: { type: 'number' },
-            year: { type: 'number' },
-            created_at: { type: 'string' },
-            updated_at: { type: 'string' },
-          },
-        },
-      },
+      response: { 200: responseWrapper },
     },
   }, controller.editAccessProjectType.bind(controller))
 
-  // DELETE - Delete access project type
   fastify.delete('/:id', {
     schema: {
       tags: ['access-project-type'],
-      description: 'Delete access project type',
       params: {
         type: 'object',
-        properties: {
-          id: { type: 'string' },
-        },
+        properties: { id: { type: 'string' } },
         required: ['id'],
       },
       response: {
         200: {
           type: 'object',
-          properties: {
-            message: { type: 'string' },
-          },
+          properties: { message: { type: 'string' } },
         },
       },
     },

@@ -236,7 +236,11 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
     fastify.log.info(`Generating token for user ${user.npp} with is_superuser=${user.is_superuser}`);
     
     // Create JWT payload with permissions
-    const permissions = await getUserPermissions(userId);
+    const userPermissions = await getUserPermissions(userId);
+    const permissions = {
+      PROJECT: userPermissions.PROJECT || (user.is_superuser ? ['CREATE', 'READ', 'UPDATE', 'DELETE'] : []),
+      ...userPermissions
+    };
     
     // Create JWT payload with permissions - ensure is_superuser is a boolean
     const payload = {
@@ -248,9 +252,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
     fastify.log.info(`Token payload for user ${user.npp}: ${JSON.stringify(payload)}`);
     
     // Generate token with longer expiration for easier testing
-    return jwt.sign(payload, jwtSecret, { 
-      expiresIn: '30d' // Extend to 30 days for testing
-    });
+     return jwt.sign(payload, jwtSecret);
   }
   
   // Register decorator functions

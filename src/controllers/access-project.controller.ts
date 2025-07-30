@@ -1,11 +1,9 @@
-// src/modules/access-project-type/accessProjectType.controller.ts
-
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
 import { Prisma } from '@prisma/client'
 
 interface GetAccessProjectTypeParams {
-  id: string // UUID
+  id: string
 }
 
 interface GetAccessProjectTypeQuery {
@@ -53,10 +51,16 @@ export class AccessProjectTypeController extends BaseController {
           year: true,
           created_at: true,
           updated_at: true,
+          project: {
+            select: { id: true, name: true },
+          },
+          typeRel: {
+            select: { id: true, name: true, description: true },
+          },
         },
       })
 
-      return this.sendResponse(reply, result)
+      return reply.send({ success: true, data: result })
     } catch (error) {
       return this.handleError(error, reply, 'Failed to create access project type')
     }
@@ -69,13 +73,9 @@ export class AccessProjectTypeController extends BaseController {
     try {
       const { id } = request.params
 
-      await this.prisma.accessProjectType.delete({
-        where: { id },
-      })
+      await this.prisma.accessProjectType.delete({ where: { id } })
 
-      return reply.status(200).send({
-        message: 'Access project type was deleted.',
-      })
+      return reply.status(200).send({ message: 'Access project type was deleted.' })
     } catch (error) {
       return this.handleError(error, reply, 'Failed to delete access project type')
     }
@@ -126,7 +126,8 @@ export class AccessProjectTypeController extends BaseController {
 
       const totalCount = await this.prisma.accessProjectType.count({ where })
 
-      return this.sendResponse(reply, {
+      return reply.send({
+        success: true,
         data,
         meta: {
           page,
@@ -171,12 +172,12 @@ export class AccessProjectTypeController extends BaseController {
 
       if (!data) {
         return reply.status(404).send({
-          error: 'Not Found',
+          success: false,
           message: 'Access project type not found',
         })
       }
 
-      return this.sendResponse(reply, data)
+      return reply.send({ success: true, data })
     } catch (error) {
       return this.handleError(error, reply, 'Failed to retrieve access project type')
     }
@@ -193,7 +194,7 @@ export class AccessProjectTypeController extends BaseController {
       const { id } = request.params
       const { keys, unit, type, project_name, information, target, year } = request.body
 
-      const data = await this.prisma.accessProjectType.update({
+      const updated = await this.prisma.accessProjectType.update({
         where: { id },
         data: {
           keys: keys ?? undefined,
@@ -215,10 +216,16 @@ export class AccessProjectTypeController extends BaseController {
           year: true,
           created_at: true,
           updated_at: true,
+          project: {
+            select: { id: true, name: true },
+          },
+          typeRel: {
+            select: { id: true, name: true, description: true },
+          },
         },
       })
 
-      return this.sendResponse(reply, data)
+      return reply.send({ success: true, data: updated })
     } catch (error) {
       return this.handleError(error, reply, 'Failed to update access project type')
     }
