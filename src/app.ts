@@ -27,6 +27,8 @@ import overviewDivisionRoutes from './routes/overview-division.routes'
 import statusRealisasiRoutes from './routes/status-realisasi.routes'
 import programRoutes from './routes/performance.management.program.routes'
 import planProjectRoutes from './routes/plan-project.routes'
+import assignProjectRoutes from './routes/assign-project.routes'
+
 
 
 
@@ -255,6 +257,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(programRoutes, { prefix: '/program' })
 
   await app.register(planProjectRoutes, { prefix: '/project' })
+
+    await app.register(assignProjectRoutes, { prefix: '/assign-project' })
   
   return app
 }
