@@ -1,17 +1,11 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
 import bcrypt from 'bcrypt'
-import { Permission, Resource } from '@prisma/client'
 
 // Define request body types for type safety
 interface LoginRequest {
   npp: string
   password: string
-}
-
-interface PermissionItem {
-  resource: Resource
-  permission: Permission
 }
 
 interface RegisterRequest {
@@ -20,9 +14,8 @@ interface RegisterRequest {
   email?: string
   password: string
   photo?: string
+  eselon?: number
   is_superuser?: boolean
-  groups?: string[]
-  permissions?: PermissionItem[]
 }
 
 export class AuthController extends BaseController {
@@ -37,54 +30,89 @@ export class AuthController extends BaseController {
     try {
       const { npp, password } = request.body
 
-      if (npp === null || npp === '') {
-        return reply.status(401).send({
+      if (!npp || npp.trim() === '') {
+        return reply.status(400).send({
           error: 'Authentication failed',
-          message: 'Npp cannot be empty.'
+          message: 'NPP cannot be empty.'
         })
       }
 
-      if (password === null || npp === '') {
-        return reply.status(401).send({
+      if (!password || password.trim() === '') {
+        return reply.status(400).send({
           error: 'Authentication failed',
           message: 'Password cannot be empty.'
         })
       }
 
-      // Find user by NPP
+      // Find user by NPP with eselon
       const user = await this.prisma.personnels.findUnique({
-        where: { npp }
+        where: { npp },
+        select: {
+          id: true,
+          npp: true,
+          name: true,
+          email: true,
+          photo: true,
+          password: true,
+          eselon: true,
+          is_superuser: true,
+          active: true
+        }
       })
 
-      // Check if user exists
+      // Check if user exists and is active
       if (!user) {
-        return reply.status(404).send({
+        return reply.status(401).send({
           error: 'Authentication failed',
           message: 'Invalid NPP or password'
+        })
+      }
+
+      if (!user.active) {
+        return reply.status(401).send({
+          error: 'Authentication failed',
+          message: 'Account is inactive'
         })
       }
 
       // Compare passwords
       const isPasswordValid = await bcrypt.compare(password, user.password)
       if (!isPasswordValid) {
-        return reply.status(404).send({
+        return reply.status(401).send({
           error: 'Authentication failed',
           message: 'Invalid NPP or password'
         })
       }
 
-      // Generate JWT token with embedded permissions
+      // Generate JWT token (updated to use user.id instead of user.npp)
       const token = await this.fastify.generateToken(user.id)
 
-      // Return user data and token
+      // Determine user role for frontend
+      const getRoleFromEselon = (eselon: number, isSuperuser: boolean): string => {
+        if (isSuperuser) return 'SUPER_ADMIN'
+        switch (eselon) {
+          case -1: return 'ADMIN'
+          case 1:
+          case 2: return 'MANAGER'
+          default: return 'STAFF'
+        }
+      }
+
+      const role = getRoleFromEselon(user.eselon || 5, user.is_superuser)
+
+      // Return user data and token (without password)
       return this.sendResponse(reply, {
         user: {
           npp: user.npp,
           name: user.name,
           email: user.email,
-          is_superuser: user.is_superuser
+          photo: user.photo,
+          eselon: user.eselon,
+          is_superuser: user.is_superuser,
+          role // Frontend bisa pakai ini untuk routing/menu
         },
-        token
+        token,
+        role
       })
     } catch (error) {
       return this.handleError(error, reply, 'Login failed')
@@ -92,7 +120,7 @@ export class AuthController extends BaseController {
   }
 
   /**
-   * Register a new user
+   * Register a new user (Simplified - hanya untuk SUPER_ADMIN)
    */
   async register(request: FastifyRequest<{ Body: RegisterRequest }>, reply: FastifyReply) {
     try {
@@ -102,9 +130,8 @@ export class AuthController extends BaseController {
         email, 
         password, 
         photo,
-        is_superuser = false,
-        groups = [],
-        permissions = []
+        eselon = 5,  // Default ke staff
+        is_superuser = false
       } = request.body
 
       // Check if user already exists
@@ -119,78 +146,46 @@ export class AuthController extends BaseController {
         })
       }
 
+      // Validate eselon
+     if (![-1, 1, 2, 3, 4, 5].includes(eselon)) {
+        return reply.status(400).send({
+          error: 'Registration failed',
+          message: 'Invalid eselon value'
+        })
+      }
+
       // Hash password
       const salt = await bcrypt.genSalt(10)
       const hashedPassword = await bcrypt.hash(password, salt)
 
-      // Use transaction to ensure all operations succeed or fail together
-      const result = await this.prisma.$transaction(async (tx) => {
-        // Create new user
-        const newUser = await tx.personnels.create({
-          data: {
-            npp,
-            name,
-            email,
-            password: hashedPassword,
-            photo,
-            is_superuser
-          }
-        })
-
-        // Assign user to groups if provided
-        if (groups.length > 0) {
-          // Verify all groups exist
-          const existingGroups = await tx.groups.findMany({
-            where: { id: { in: groups } },
-            select: { id: true }
-          })
-
-          if (existingGroups.length !== groups.length) {
-            throw new Error('One or more group IDs are invalid')
-          }
-
-          // Create group assignments
-          await Promise.all(groups.map(group_id => 
-            tx.personnelGroups.create({
-              data: {
-                personnel_id: newUser.npp,
-                group_id: group_id
-              }
-            })
-          ))
+      // Create new user
+      const newUser = await this.prisma.personnels.create({
+        data: {
+          npp,
+          name,
+          email,
+          password: hashedPassword,
+          photo,
+          eselon,
+          is_superuser,
+          active: true
+        },
+        select: {
+          npp: true,
+          name: true,
+          email: true,
+          photo: true,
+          eselon: true,
+          is_superuser: true,
+          active: true,
+          created_at: true
         }
-
-        // Add direct permissions if provided
-        if (permissions.length > 0) {
-          await Promise.all(permissions.map(perm =>
-            tx.personnelPermissions.create({
-              data: {
-                personnel_id: newUser.npp,
-                resource: perm.resource,
-                permission: perm.permission
-              }
-            })
-          ))
-        }
-
-        // Return created user with relations
-        return tx.personnels.findUnique({
-          where: { npp: newUser.npp },
-          include: {
-            PersonnelGroups: {
-              include: {
-                group: true
-              }
-            },
-            PersonnelPermissions: true
-          }
-        })
       })
 
-      // Remove password from response
-      const { password: _, ...userWithoutPassword } = result!
-
-      return this.sendResponse(reply, userWithoutPassword, 201)
+      return this.sendResponse(reply, { 
+        message: 'User registered successfully',
+        user: newUser 
+      }, 201)
     } catch (error) {
       return this.handleError(error, reply, 'Registration failed')
     }
@@ -211,15 +206,70 @@ export class AuthController extends BaseController {
         })
       }
 
-      // Include permissions in the response
+      // Get user role
+      const getRoleFromEselon = (eselon: number, isSuperuser: boolean): string => {
+        if (isSuperuser) return 'SUPER_ADMIN'
+        switch (eselon) {
+          case -1: return 'ADMIN'
+          case 1:
+          case 2: return 'MANAGER'
+          default: return 'STAFF'
+        }
+      }
+
+      const role = getRoleFromEselon(user.eselon || 5, user.is_superuser)
+
+      // Include role in the response (no more permissions)
       const userData = {
         ...user,
-        permissions: request.permissions
+        role
       }
       
       return this.sendResponse(reply, userData)
     } catch (error) {
       return this.handleError(error, reply, 'Failed to retrieve user information')
+    }
+  }
+
+  /**
+   * Logout (Optional - untuk clear token di frontend)
+   */
+  async logout(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      // JWT stateless, jadi logout hanya response success
+      // Frontend yang handle hapus token dari storage
+      
+      return this.sendResponse(reply, {
+        message: 'Logged out successfully'
+      })
+    } catch (error) {
+      return this.handleError(error, reply, 'Logout failed')
+    }
+  }
+
+  /**
+   * Refresh token (Optional)
+   */
+  async refreshToken(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const user = request.user
+
+      if (!user) {
+        return reply.status(401).send({
+          error: 'Authentication required',
+          message: 'You must be logged in to refresh token'
+        })
+      }
+
+      // Generate new token
+      const newToken = await this.fastify.generateToken(user.npp)
+
+      return this.sendResponse(reply, {
+        token: newToken,
+        message: 'Token refreshed successfully'
+      })
+    } catch (error) {
+      return this.handleError(error, reply, 'Token refresh failed')
     }
   }
 }

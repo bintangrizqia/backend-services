@@ -1,25 +1,18 @@
 import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
 import jwt from 'jsonwebtoken'
 import fp from 'fastify-plugin'
-import { Permission, Resource } from '@prisma/client'
 
 interface JwtPayload {
-  id: string
   npp: string
   name: string
+  eselon: number
   is_superuser: boolean
-  permissions?: {
-    [key in Resource]?: Permission[]
-  }
   [key: string]: any
 }
 
 declare module 'fastify' {
   interface FastifyRequest {
     user?: any
-    permissions?: {
-      [key in Resource]?: Permission[]
-    }
   }
   
   interface FastifyInstance {
@@ -33,68 +26,10 @@ declare module 'fastify' {
 }
 
 /**
- * Authentication middleware using JWT directly
+ * Authentication middleware using JWT directly with eselon support
  */
 const authMiddleware = fp(async (fastify: FastifyInstance) => {
   const jwtSecret = process.env.JWT_SECRET || 'supersecretkey'
-  
-  /**
-   * Get user permissions from database (both direct and via groups)
-   */
-  const getUserPermissions = async (userId: string): Promise<{ [key in Resource]?: Permission[] }> => {
-    try {
-      // Check if user is superuser first
-      const user = await fastify.prisma.personnels.findUnique({
-        where: { id: userId },
-        select: { is_superuser: true }
-      });
-      
-      if (user?.is_superuser) {
-        // Superusers have all permissions, no need to query the database further
-        return Object.values(Resource).reduce((permissions, resource) => {
-          permissions[resource] = Object.values(Permission);
-          return permissions;
-        }, {} as { [key in Resource]: Permission[] });
-      }
-      
-      // Get direct permissions
-      const directPermissions = await fastify.prisma.personnelPermissions.findMany({
-        where: { personnel_id: userId }
-      });
-      
-      // Get group permissions
-      const groupPermissions = await fastify.prisma.$queryRaw<{ resource: Resource; permission: Permission }[]>`
-        SELECT gp.resource, gp.permission
-        FROM "GroupPermissions" gp
-        JOIN "PersonnelGroups" pg ON pg.group_id = gp.group_id
-        WHERE pg.personnel_id = ${userId}
-      `;
-      
-      // Combine permissions
-      const allPermissions = [...directPermissions, ...groupPermissions];
-      
-      // Group by resource
-      const permissionsByResource: { [key in Resource]?: Permission[] } = {};
-      
-      allPermissions.forEach(p => {
-        const resource = p.resource as Resource;
-        const permission = p.permission as Permission;
-        
-        if (!permissionsByResource[resource]) {
-          permissionsByResource[resource] = [];
-        }
-        
-        if (!permissionsByResource[resource]!.includes(permission)) {
-          permissionsByResource[resource]!.push(permission);
-        }
-      });
-      
-      return permissionsByResource;
-    } catch (error) {
-      fastify.log.error('Error fetching user permissions:', error);
-      return {};
-    }
-  };
   
   /**
    * Authentication middleware function
@@ -105,7 +40,6 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       const authHeader = request.headers.authorization
       
       if (!authHeader) {
-        // Instead of sending response directly, set status code and attach error info
         reply.status(401)
         return reply.send({
           statusCode: 401,
@@ -133,7 +67,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       // Log decoded token for debugging
       fastify.log.info(`Decoded token: ${JSON.stringify(decoded, null, 2)}`);
       
-      // Find user in database
+      // Find user in database with eselon
       const user = await fastify.prisma.personnels.findUnique({
         where: { npp: decoded.npp },
         select: {
@@ -141,6 +75,7 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
           name: true,
           email: true,
           photo: true,
+          eselon: true,        // TAMBAH eselon
           is_superuser: true,
           created_at: true,
           updated_at: true,
@@ -161,29 +96,17 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       // Log user data for debugging
       fastify.log.info(`User data from DB: ${JSON.stringify(user, null, 2)}`);
       
-      // Masalah utama di sini! Pastikan is_superuser dari database digunakan, bukan dari token
-      // Decode is_superuser sebagai boolean murni
+      // Attach user data to request - pastikan semua data dari database
       request.user = {
         ...user,
+        eselon: user.eselon || 5,               // Default ke staff jika null
         is_superuser: Boolean(user.is_superuser)
       };
       
       // Debug log
-      fastify.log.info(`User authenticated: ${request.user.npp}, is_superuser=${request.user.is_superuser} (${typeof request.user.is_superuser})`);
+      fastify.log.info(`User authenticated: ${request.user.npp}, eselon=${request.user.eselon}, is_superuser=${request.user.is_superuser} (${typeof request.user.is_superuser})`);
       
-      // Attach permissions directly from database for superuser, not from token
-      if (user.is_superuser) {
-        // Give superuser all permissions
-        request.permissions = Object.values(Resource).reduce((permissions, resource) => {
-          permissions[resource] = Object.values(Permission);
-          return permissions;
-        }, {} as { [key in Resource]: Permission[] });
-      } else if (decoded.permissions) {
-        // Use token permissions for regular users
-        request.permissions = decoded.permissions;
-      }
-      
-      // Authentication successful
+      // Authentication successful - tidak perlu permission di sini karena sudah pakai eselon
       
     } catch (error) {
       if (error instanceof jwt.JsonWebTokenError) {
@@ -215,15 +138,16 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
   }
   
   /**
-   * Generate a new JWT token with user permissions included
+   * Generate a new JWT token with user basic info (simplified)
    */
   const generateToken = async (userId: string): Promise<string> => {
-    // Get user basic info
+    // Get user basic info including eselon
     const user = await fastify.prisma.personnels.findUnique({
       where: { id: userId },
       select: {
         npp: true,
         name: true,
+        eselon: true,        // TAMBAH eselon
         is_superuser: true
       }
     });
@@ -232,27 +156,23 @@ const authMiddleware = fp(async (fastify: FastifyInstance) => {
       throw new Error('User not found');
     }
     
-    // Get user permissionsth special attention to is_superuser
-    fastify.log.info(`Generating token for user ${user.npp} with is_superuser=${user.is_superuser}`);
+    // Log untuk debugging
+    fastify.log.info(`Generating token for user ${user.npp} with eselon=${user.eselon}, is_superuser=${user.is_superuser}`);
     
-    // Create JWT payload with permissions
-    const userPermissions = await getUserPermissions(userId);
-    const permissions = {
-      PROJECT: userPermissions.PROJECT || (user.is_superuser ? ['CREATE', 'READ', 'UPDATE', 'DELETE'] : []),
-      ...userPermissions
-    };
-    
-    // Create JWT payload with permissions - ensure is_superuser is a boolean
-    const payload = {
+    // Create JWT payload - SIMPLIFIED (tidak perlu permission lagi)
+    const payload: JwtPayload = {
       npp: user.npp,
       name: user.name,
-      is_superuser: Boolean(user.is_superuser),
-      permissions
+      eselon: user.eselon || 5,                    // Default ke staff
+      is_superuser: Boolean(user.is_superuser)
     };
+    
     fastify.log.info(`Token payload for user ${user.npp}: ${JSON.stringify(payload)}`);
     
-    // Generate token with longer expiration for easier testing
-     return jwt.sign(payload, jwtSecret);
+    // Generate token
+    return jwt.sign(payload, jwtSecret, {
+      expiresIn: '24h' // Token valid 24 jam
+    });
   }
   
   // Register decorator functions

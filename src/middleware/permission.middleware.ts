@@ -2,7 +2,69 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import fp from 'fastify-plugin'
 import { Permission, Resource } from '@prisma/client'
 
-// Extend FastifyRequest to include a flag for permission errors
+// Define role mapping based on eselon
+const getRoleFromEselon = (eselon: number, isSuperuser: boolean): string => {
+  if (isSuperuser) return 'SUPER_ADMIN';
+  
+  switch (eselon) {
+    case -1: return 'ADMIN'; // Direksi
+    case 1:
+    case 2: return 'MANAGER';
+    case 3:
+    case 4:
+    case 5: return 'STAFF';
+    default: return 'STAFF';
+  }
+};
+
+// Define permissions based on role
+const ROLE_PERMISSIONS = {
+  'SUPER_ADMIN': {
+    // Super Admin - Full access to everything
+    USER: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    PROGRAM: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    PLAN_TYPE: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    PLAN_PROJECT: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    ASSIGN_PROJECT: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    OVERVIEW: ['READ'],
+    PERSONNEL: ['READ'], // For assignment purposes
+    PROFILE: ['READ', 'UPDATE'] // Can edit own profile
+  },
+  'ADMIN': {
+    // Direksi - Admin terbatas (tidak bisa kelola user)
+    USER: [], // Tidak bisa kelola user
+    PROGRAM: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    PLAN_TYPE: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    PLAN_PROJECT: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
+    ASSIGN_PROJECT: ['CREATE', 'READ', 'UPDATE', 'DELETE'], // Bisa assign ke eselon 1
+    OVERVIEW: ['READ'],
+    PERSONNEL: ['READ'], // Bisa lihat personnel untuk assignment
+    PROFILE: ['READ', 'UPDATE'] // Can edit own profile
+  },
+  'MANAGER': {
+    // Eselon 1 & 2 - Bisa cascade assignment
+    USER: [],
+    PROGRAM: ['READ'], // Hanya lihat, tidak bisa add/edit/delete
+    PLAN_TYPE: [],
+    PLAN_PROJECT: [],
+    ASSIGN_PROJECT: ['READ', 'UPDATE'], // Bisa cascade/menurunkan assignment
+    OVERVIEW: ['READ'],
+    PERSONNEL: ['READ'], // Perlu lihat personnel untuk penurunan
+    PROFILE: ['READ', 'UPDATE'] // Can edit own profile
+  },
+  'STAFF': {
+    // Eselon 3,4,5 - View only
+    USER: [],
+    PROGRAM: [],
+    PLAN_TYPE: [],
+    PLAN_PROJECT: [],
+    ASSIGN_PROJECT: ['READ'], // Hanya lihat assignment
+    OVERVIEW: ['READ'],
+    PERSONNEL: [], // Tidak perlu lihat personnel lain
+    PROFILE: ['READ', 'UPDATE'] // Can edit own profile
+  }
+} as const;
+
 declare module 'fastify' {
   interface FastifyRequest {
     permissionError?: boolean;
@@ -18,92 +80,138 @@ declare module 'fastify' {
       resource: Resource,
       permission: Permission | Permission[]
     ) => (request: FastifyRequest, reply: FastifyReply, done: (err?: Error) => void) => void
+    getUserRole: (request: FastifyRequest) => string
+    canAssignToEselon: (request: FastifyRequest, targetEselon: number) => boolean
+    canAssignToPersonnel: (request: FastifyRequest, targetPersonnel: any) => boolean
+    canEditPersonnel: (request: FastifyRequest, targetPersonnelNpp: string) => boolean
   }
 }
 
 const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
+  
+  const getUserRole = (request: FastifyRequest): string => {
+    if (!request.user) return 'GUEST';
+    
+    const eselon = request.user.eselon || 5;
+    const isSuperuser = request.user.is_superuser === true;
+    
+    return getRoleFromEselon(eselon, isSuperuser);
+  };
+  
+  // Function to check if user can edit specific personnel (for own profile)
+  const canEditPersonnel = (request: FastifyRequest, targetPersonnelNpp: string): boolean => {
+    if (!request.user) return false;
+    
+    // User can always edit their own profile
+    if (request.user.npp === targetPersonnelNpp) {
+      return true;
+    }
+    
+    // Super admin can edit others (if needed)
+    const userRole = getUserRole(request);
+    return userRole === 'SUPER_ADMIN';
+  };
+  
+  // Function to check if user can assign project to specific personnel
+  const canAssignToPersonnel = (request: FastifyRequest, targetPersonnel: any): boolean => {
+    if (!request.user) return false;
+    
+    const userRole = getUserRole(request);
+    const userEselon = request.user.eselon || 5;
+    const targetEselon = targetPersonnel.eselon;
+    const targetIsSuperuser = targetPersonnel.is_superuser;
+    
+    switch (userRole) {
+      case 'SUPER_ADMIN':
+        // Super admin bisa assign ke siapa saja KECUALI sesama superuser
+        return !targetIsSuperuser;
+      
+      case 'ADMIN': // Direksi (eselon -1, bukan superuser)
+        // Direksi hanya bisa assign ke eselon 1 (bukan superuser)
+        return targetEselon === 1 && !targetIsSuperuser;
+      
+      case 'MANAGER':
+        if (userEselon === 1) {
+          // Eselon 1 hanya bisa assign ke eselon 2 (bukan superuser)
+          return targetEselon === 2 && !targetIsSuperuser;
+        } else if (userEselon === 2) {
+          // Eselon 2 bisa assign ke 3,4,5 (bukan superuser)
+          return [3, 4, 5].includes(targetEselon) && !targetIsSuperuser;
+        }
+        return false;
+      
+      case 'STAFF':
+        return false; // Staff tidak bisa assign
+      
+      default:
+        return false;
+    }
+  };
+  
+  // Backward compatibility - masih bisa pakai canAssignToEselon
+  const canAssignToEselon = (request: FastifyRequest, targetEselon: number): boolean => {
+    return canAssignToPersonnel(request, { eselon: targetEselon, is_superuser: false });
+  };
+  
   /**
    * Check if a user has a specific permission for a resource
    */
   const hasPermission = async (
-    request: FastifyRequest, 
-    resource: Resource, 
-    permission: Permission | Permission[]
-  ): Promise<boolean> => {
-    try {
-      // Tambahkan logging lebih detail
-      fastify.log.info(`===== PERMISSION CHECK =====`);
-      fastify.log.info(`Resource: ${resource}, Permission: ${permission}`);
-      
-      if (!request.user) {
-        fastify.log.warn('No user found in request, denying permission');
-        return false
-      }
+  request: FastifyRequest,
+  resource: Resource,
+  permission: Permission | Permission[]
+): Promise<boolean> => {
+  try {
+    fastify.log.info(`===== ESELON PERMISSION CHECK =====`);
+    fastify.log.info(`Resource: ${resource}, Permission: ${permission}`);
 
-      // Log user data in detail
-      fastify.log.info(`User data: ${JSON.stringify(request.user, null, 2)}`);
-      fastify.log.info(`is_superuser type: ${typeof request.user.is_superuser}`);
-      fastify.log.info(`is_superuser value: ${request.user.is_superuser}`);
-      
-      // Perbaikan kritis: super simple superuser check
-      if (request.user.is_superuser === true) {
-        fastify.log.info(`User ${request.user.npp} IS SUPERUSER - granting all permissions`);
-        return true;
-      }
-      
-      // Tambahkan logging untuk memahami alur kode
-      fastify.log.info(`User ${request.user.npp} is NOT superuser, checking specific permissions`);
-      
-      const permissions = Array.isArray(permission) ? permission : [permission]
-      
-      // First check JWT token embedded permissions (faster than DB query)
-      if (request.permissions && request.permissions[resource]) {
-        const hasPermissions = permissions.some(p => 
-          request.permissions![resource]!.includes(p)
-        )
-        
-        if (hasPermissions) {
-          return true
-        }
-        
-        fastify.log.info(`Token permissions check failed: User ${request.user.npp}, Resource ${resource}`)
-      }
-
-      const userId = request.user.npp
-
-      // Check for direct user permissions
-      const directPermissionsCount = await fastify.prisma.personnelPermissions.count({
-        where: {
-          personnel_id: userId,
-          resource,
-          permission: { in: permissions }
-        }
-      })
-
-      if (directPermissionsCount > 0) {
-        return true
-      }
-
-      // Check for permissions through groups
-      const groupPermissionsResult = await fastify.prisma.$queryRaw<[{ count: bigint }]>`
-        SELECT COUNT(*) 
-        FROM "GroupPermissions" gp
-        JOIN "PersonnelGroups" pg ON pg.group_id = gp.group_id
-        WHERE pg.personnel_id = ${userId}
-        AND gp.resource = ${resource}::\"Resource\"
-        AND gp.permission = ANY(${permissions}::\"Permission\"[])
-      `
-
-      return Number(groupPermissionsResult[0].count) > 0
-    } catch (error) {
-      fastify.log.error('Permission check failed:', error)
-      return false
+    if (!request.user) {
+      fastify.log.warn('No user found in request, denying permission');
+      return false;
     }
+
+    const userRole = getUserRole(request);
+    const userEselon = request.user.eselon || 5;
+
+    fastify.log.info(`User ${request.user.npp} - Eselon: ${userEselon}, Role: ${userRole}`);
+
+    // Get permissions for this role
+    const rolePermissions = ROLE_PERMISSIONS[userRole as keyof typeof ROLE_PERMISSIONS];
+
+    if (!rolePermissions) {
+      fastify.log.warn(`Unknown role: ${userRole}`);
+      return false;
+    }
+
+    // Check if resource exists in role permissions
+    // Gunakan `(rolePermissions as any)` untuk memberitahu TypeScript agar tidak terlalu ketat
+    const resourcePermissions = (rolePermissions as any)[resource];
+
+    if (!resourcePermissions) {
+      fastify.log.info(`Resource ${resource} not defined for role ${userRole}`);
+      return false;
+    }
+
+    // Check specific permissions
+    const permissions = Array.isArray(permission) ? permission : [permission];
+    
+    // Perbaiki baris ini. Kita perlu mengkonversi resourcePermissions ke tipe yang bisa diakses
+    const hasRequiredPermission = permissions.some(p =>
+      // Konversi ke `string[]` akan menghasilkan error, jadi kita gunakan `as any as string[]`
+      (resourcePermissions as readonly string[]).includes(p as string)
+    );
+
+    fastify.log.info(`Permission check result: ${hasRequiredPermission}`);
+    return hasRequiredPermission;
+
+  } catch (error) {
+    fastify.log.error('Permission check failed:', error);
+    return false;
   }
+};
 
   /**
    * Create a hook function that checks permissions and can be used with preHandler
-   * This uses Fastify's synchronous done callback to ensure the request is blocked
    */
   const checkPermission = (
     resource: Resource,
@@ -114,57 +222,34 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
       reply: FastifyReply, 
       done: (err?: Error) => void
     ) {
-      // Skip permission check completely for superusers
-      if (request.user && request.user.is_superuser === true) {
-        fastify.log.info(`SUPERUSER detected: ${request.user.npp} - skipping permission check`);
-        return done();
-      }
-
-      // If the request is already unauthorized, don't proceed with permission check
-      if (reply.statusCode === 401 || reply.sent === true) {
-        return done();
-      }
-
-      // Make sure we have a user object
       if (!request.user) {
-        // Log it for debugging
-        fastify.log.warn('No user object found in permission check');
-        
-        // This shouldn't happen because authentication should run first,
-        // but just in case, mark as unauthorized
         reply.code(401).send({
           statusCode: 401,
           error: 'Unauthorized',
           message: 'Authentication required'
         });
-        // End the request lifecycle
         return done(new Error('Authentication required'));
       }
       
-      // Add debug logging
-      fastify.log.info(`Permission check hook for ${resource}.${permission} - User: ${request.user.npp}`);
+      const userRole = getUserRole(request);
+      
+      fastify.log.info(`Permission check for ${resource}.${permission} - User: ${request.user.npp} (${userRole})`);
       
       hasPermission(request, resource, permission)
         .then(allowed => {
           if (!allowed) {
-            // Critical change: Use a custom error to force Fastify to stop processing
             const err = new Error('Permission denied');
+            fastify.log.warn(`Permission denied: User ${request.user.npp} (${userRole}) tried to access ${resource}`);
             
-            // Log the permission denial
-            fastify.log.warn(`Permission denied: User ${request.user.npp} tried to access ${resource} without permission`);
-            
-            // Send the 403 Forbidden response
             reply.code(403).send({
               statusCode: 403,
               error: 'Forbidden',
-              message: `You do not have permission to access this resource (${resource})`
+              message: `Access denied. Your role (${userRole}) does not have permission to ${permission} ${resource}`
             });
             
-            // Important: Pass an error to done to ensure the request chain stops
             return done(err);
           }
           
-          // Continue with request if allowed
           fastify.log.info(`Permission granted for user ${request.user.npp} to access ${resource}`);
           return done();
         })
@@ -178,11 +263,15 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
           return done(err);
         });
     };
-  }
+  };
 
   // Add decorators to Fastify instance
   fastify.decorate('hasPermission', hasPermission);
   fastify.decorate('checkPermission', checkPermission);
-})
+  fastify.decorate('getUserRole', getUserRole);
+  fastify.decorate('canAssignToEselon', canAssignToEselon);
+  fastify.decorate('canAssignToPersonnel', canAssignToPersonnel);
+  fastify.decorate('canEditPersonnel', canEditPersonnel);
+});
 
-export default permissionMiddleware
+export default permissionMiddleware;
