@@ -2,12 +2,11 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
 
 /* ----------  DTO & Query Params ---------- */
-interface CreateAssignProjectBody {
+export interface CreateAssignProjectBody {
   key: string
   name: string
   target: string
   unit: string
-  approval_status: number
   description?: string
   created_by?: string
   year: number
@@ -15,14 +14,12 @@ interface CreateAssignProjectBody {
   owner: string
   performance_management_plan_program_id: string
   note?: string
-
-  // Transaksi: diinput NPP personnels
-  personnel_target_id: string // NPP target
-  personnel_from_id: string   // NPP from
-  due_date: string            // ISO date string
+  personnel_target_id: string
+  due_date: string
   activity_project?: string
   activity_unit?: string
 }
+
 
 /* ----------  Controller Class ---------- */
 export class AssignProjectController extends BaseController {
@@ -41,7 +38,6 @@ export class AssignProjectController extends BaseController {
         name,
         target,
         unit,
-        approval_status,
         description,
         year,
         performance_management_plan_type_id,
@@ -49,34 +45,45 @@ export class AssignProjectController extends BaseController {
         performance_management_plan_program_id,
         note,
         personnel_target_id, // NPP target
-        personnel_from_id,   // NPP from
         due_date,
         activity_project,
         activity_unit
       } = request.body
 
+      // Ambil NPP user login dari auth middleware
+      const loggedInNpp = request.user?.npp
+      if (!loggedInNpp) {
+        return reply.code(401).send({
+          message: 'Tidak dapat menemukan NPP user yang login'
+        })
+      }
+
+      const approval_status = 0
+      const project_status = 'not_started'
+      
       // Tentukan status proyek berdasarkan approval_status
-      const project_status = approval_status === 0 ? 'not_started' : 'on_progress'
+      // const project_status = approval_status === 0 ? 'not_started' : 'on_progress'
 
       // Ambil data personnels target
       const targetPersonnel = await this.prisma.personnels.findUnique({
         where: { npp: personnel_target_id }
       })
       if (!targetPersonnel) {
-      return reply.code(400).send({
-        message: `Personnel target dengan NPP ${personnel_target_id} tidak ditemukan`
-      })
-    }
+        return reply.code(400).send({
+          message: `Personnel target dengan NPP ${personnel_target_id} tidak ditemukan`
+        })
+      }
 
-      // Ambil data personnels from
+      // Ambil data personnels from berdasarkan NPP user login
       const fromPersonnel = await this.prisma.personnels.findUnique({
-        where: { npp: personnel_from_id }
+        where: { npp: loggedInNpp }
       })
       if (!fromPersonnel) {
-      return reply.code(400).send({
-        message: `Personnel from dengan NPP ${personnel_from_id} tidak ditemukan`
-      })
-    }
+        return reply.code(400).send({
+          message: `Personnel from dengan NPP ${loggedInNpp} tidak ditemukan`
+        })
+      }
+
       // Transaksi prisma agar proses create project dan transaction atomik
       const result = await this.prisma.$transaction(async (tx) => {
         // 1. Buat project
@@ -89,7 +96,7 @@ export class AssignProjectController extends BaseController {
             approval_status,
             project_status,
             description,
-            created_by: null,
+            created_by: fromPersonnel.id, // user login sebagai pembuat
             year,
             performance_management_plan_type_id,
             owner,
@@ -102,17 +109,17 @@ export class AssignProjectController extends BaseController {
         const transaction = await tx.performance_Management_Plan_Transactions.create({
           data: {
             performance_management_project_id: project.id,
-            performance_management_project_parent_id: project.id, // bisa disesuaikan kalau ada parent berbeda
+            performance_management_project_parent_id: project.id,
             approved_status: approval_status,
             realization: '',
             realization_status: 0,
             description: null,
             personnel_target_id: targetPersonnel.id,
-            position_target_id: targetPersonnel.position_id ?? undefined,
+            position_target_id: targetPersonnel.position_id ?? 0,
+            position_from_id: fromPersonnel.position_id ?? 0,
             personnel_from_id: fromPersonnel.id,
-            position_from_id: fromPersonnel.position_id ?? undefined,
             due_date: new Date(due_date),
-            created_by: '',
+            created_by: fromPersonnel.id,
             year,
             activity_project: activity_project ?? '',
             activity_target: '',
