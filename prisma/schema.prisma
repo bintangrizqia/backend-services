@@ -95,7 +95,7 @@ model Personnels {
   eselon               Int?
   name                 String
   email                String?
-  password             String
+  password             String                 
   active               Boolean                @default(true)
   created_at           DateTime               @default(now())
   updated_at           DateTime               @updatedAt
@@ -336,8 +336,8 @@ model Performance_Management_Plan_Transactions {
   personnel_target Personnels @relation("PersonnelTargetRelation", fields: [personnel_target_id], references: [id], map: "fk_personnel_target")
   personnel_from   Personnels @relation("PersonnelFromRelation", fields: [personnel_from_id], references: [id], map: "fk_personnel_from")
 
-  position_target Positions @relation("PositionTargetRelation", fields: [position_target_id], references: [id], map: "fk_position_target")
-  position_from   Positions @relation("PositionFromRelation", fields: [position_from_id], references: [id], map: "fk_position_from")
+  position_target Positions? @relation("PositionTargetRelation", fields: [position_target_id], references: [id], map: "fk_position_target")
+  position_from   Positions? @relation("PositionFromRelation", fields: [position_from_id], references: [id], map: "fk_position_from")
 
   performance_management_project        Performance_Management_Plan_Projects @relation("PerformanceManagementProjectRel", fields: [performance_management_project_id], references: [id], map: "fk_pmp_project")
   performance_management_project_parent Performance_Management_Plan_Projects @relation("PerformanceManagementProjectParentRel", fields: [performance_management_project_parent_id], references: [id], map: "fk_pmp_project_parent")

@@ -27,7 +27,9 @@ import overviewDivisionRoutes from './routes/overview-division.routes'
 import statusRealisasiRoutes from './routes/status-realisasi.routes'
 import programRoutes from './routes/performance.management.program.routes'
 import planProjectRoutes from './routes/plan-project.routes'
-
+import assignProjectRoutes from './routes/assign-project.routes'
+import unitsRoutes from './routes/units.routes'
+import positionRoutes from './routes/units.routes'
 
 
 // Environmental schema
@@ -255,6 +257,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(programRoutes, { prefix: '/program' })
 
   await app.register(planProjectRoutes, { prefix: '/project' })
+
+  await app.register(assignProjectRoutes, { prefix: '/assign-project' })
   
+  await app.register(unitsRoutes, { prefix: '/units' })
+
+  await app.register(positionRoutes, { prefix: '/positions' })
+
   return app
 }
