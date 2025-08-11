@@ -258,7 +258,7 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(planProjectRoutes, { prefix: '/project' })
 
-    await app.register(assignProjectRoutes, { prefix: '/assign-project' })
+  await app.register(assignProjectRoutes, { prefix: '/assign-project' })
   
   return app
 }

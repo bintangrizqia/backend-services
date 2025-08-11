@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
 import { Prisma } from '@prisma/client'
-
+import bcrypt from 'bcrypt';
 
 interface GetPersonnelParams {
   npp: string
@@ -13,15 +13,73 @@ interface GetPersonnelQuery {
   search?: string
 }
 
+// Disesuaikan dengan schema Prisma
+export interface CreatePersonnelBody {
+  npp: string;
+  name: string;
+  email?: string;
+  unit_id: number;         // number karena biasanya id di DB integer
+  position_id: number;
+  eselon?: number;         // ditambahkan biar nggak error ts2339
+  photo?: string;
+}
+
+export interface UpdatePersonnelBody {
+  name?: string;
+  email?: string;
+  unit_id?: number;
+  position_id?: number;
+  eselon?: number;         // ditambahkan biar aman saat update
+  photo?: string;
+}
+
 export class PersonnelController extends BaseController {
   constructor(fastify: FastifyInstance) {
     super(fastify)
   }
 
   /**
+ * Create new personnel
+ */
+async createPersonnel(
+  request: FastifyRequest<{ Body: CreatePersonnelBody }>,
+  reply: FastifyReply
+) {
+  try {
+    const { npp, name, unit_id, position_id, eselon, photo, email } = request.body;
+
+    // Hash default password "initial01!"
+    const hashedPassword = await bcrypt.hash("initial01!", 10);
+
+    const personnel = await this.prisma.personnels.create({
+      data: {
+        npp,
+        name,
+        unit_id: Number(unit_id),
+        position_id: Number(position_id),
+        eselon: eselon ?? null,
+        email: email ?? null,
+        photo: photo ?? null,
+        password: hashedPassword,
+        active: true,
+        is_superuser: false
+      }
+    });
+
+    return this.sendResponse(reply, personnel, 201);
+  } catch (error) {
+    return this.handleError(error, reply, 'Failed to create personnel');
+  }
+}
+
+
+  /**
    * Get all personnel with pagination and search
    */
-  async getAllPersonnel(request: FastifyRequest<{ Querystring: GetPersonnelQuery }>, reply: FastifyReply) {
+  async getAllPersonnel(
+    request: FastifyRequest<{ Querystring: GetPersonnelQuery }>,
+    reply: FastifyReply
+  ) {
     try {
       const { page = 1, limit = 10, search } = request.query
       const skip = (page - 1) * limit
@@ -36,7 +94,6 @@ export class PersonnelController extends BaseController {
           }
         : {}
 
-      // Get personnel with pagination
       const personnel = await this.prisma.personnels.findMany({
         where,
         skip,
@@ -76,7 +133,6 @@ export class PersonnelController extends BaseController {
         }
       })
 
-      // Get total count for pagination
       const totalCount = await this.prisma.personnels.count({ where })
 
       return this.sendResponse(reply, {
@@ -94,9 +150,12 @@ export class PersonnelController extends BaseController {
   }
 
   /**
-   * Get personnel by ID
+   * Get personnel by NPP
    */
-  async getPersonnelById(request: FastifyRequest<{ Params: GetPersonnelParams }>, reply: FastifyReply) {
+  async getPersonnelById(
+    request: FastifyRequest<{ Params: GetPersonnelParams }>,
+    reply: FastifyReply
+  ) {
     try {
       const { npp } = request.params
 
@@ -151,38 +210,86 @@ export class PersonnelController extends BaseController {
   }
 
   /**
- * Get list of personnel (npp and name only)
- * with optional filter by eselon via query (e.g. ?eselon=1 or ?eselon=1,2)
- */
-async getPersonnelOptions(
-  request: FastifyRequest<{ Querystring: { eselon?: string } }>,
-  reply: FastifyReply
-) {
-  try {
-    const eselonParam = request.query?.eselon // ambil dari query params
-    const eselonFilter = eselonParam
-      ? (Array.isArray(eselonParam)
-          ? eselonParam.map(Number)
-          : eselonParam.split(',').map(Number))
-      : undefined
+   * Update personnel by NPP
+   */
+  async updatePersonnel(
+    request: FastifyRequest<{ Params: GetPersonnelParams; Body: UpdatePersonnelBody }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { npp } = request.params
+      const data = request.body
 
-    const personnels = await this.prisma.personnels.findMany({
-      where: eselonFilter
-        ? { eselon: { in: eselonFilter } }
-        : undefined, // tanpa filter jika tidak ada param
-      select: {
-        npp: true,
-        name: true
-      },
-      orderBy: {
-        name: 'asc'
+      const existing = await this.prisma.personnels.findUnique({ where: { npp } })
+      if (!existing) {
+        return reply.status(404).send({ error: 'Not Found', message: 'Personnel not found' })
       }
-    })
 
-    return this.sendResponse(reply, { data: personnels })
-  } catch (error) {
-    return this.handleError(error, reply, 'Failed to retrieve personnel options')
+      const updated = await this.prisma.personnels.update({
+        where: { npp },
+        data
+      })
+
+      return this.sendResponse(reply, updated)
+    } catch (error) {
+      return this.handleError(error, reply, 'Failed to update personnel')
+    }
   }
-}
 
+  /**
+   * Delete personnel by NPP
+   */
+  async deletePersonnel(
+    request: FastifyRequest<{ Params: GetPersonnelParams }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const { npp } = request.params
+
+      const existing = await this.prisma.personnels.findUnique({ where: { npp } })
+      if (!existing) {
+        return reply.status(404).send({ error: 'Not Found', message: 'Personnel not found' })
+      }
+
+      await this.prisma.personnels.delete({ where: { npp } })
+
+      return this.sendResponse(reply, { message: 'Personnel deleted successfully' })
+    } catch (error) {
+      return this.handleError(error, reply, 'Failed to delete personnel')
+    }
+  }
+
+  /**
+   * Get list of personnel options (npp and name only) with optional filter by eselon
+   */
+  async getPersonnelOptions(
+    request: FastifyRequest<{ Querystring: { eselon?: string } }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const eselonParam = request.query?.eselon
+      const eselonFilter = eselonParam
+        ? (Array.isArray(eselonParam)
+            ? eselonParam.map(Number)
+            : eselonParam.split(',').map(Number))
+        : undefined
+
+      const personnels = await this.prisma.personnels.findMany({
+        where: eselonFilter
+          ? { eselon: { in: eselonFilter } }
+          : undefined,
+        select: {
+          npp: true,
+          name: true
+        },
+        orderBy: {
+          name: 'asc'
+        }
+      })
+
+      return this.sendResponse(reply, { data: personnels })
+    } catch (error) {
+      return this.handleError(error, reply, 'Failed to retrieve personnel options')
+    }
+  }
 }

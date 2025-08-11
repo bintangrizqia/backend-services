@@ -1,26 +1,12 @@
-// src/controllers/assign-project.controller.ts
-
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { BaseController } from './base.controller'
-import { Prisma } from '@prisma/client'
 
 /* ----------  DTO & Query Params ---------- */
-interface GetAssignProjectParams {
-  id: string          // cuid()
-}
-
-interface GetAssignProjectQuery {
-  page?: number
-  limit?: number
-  search?: string
-}
-
 interface CreateAssignProjectBody {
   key: string
   name: string
   target: string
   unit: string
-  project_status: string
   approval_status: number
   description?: string
   created_by?: string
@@ -29,186 +15,124 @@ interface CreateAssignProjectBody {
   owner: string
   performance_management_plan_program_id: string
   note?: string
+
+  // Transaksi: diinput NPP personnels
+  personnel_target_id: string // NPP target
+  personnel_from_id: string   // NPP from
+  due_date: string            // ISO date string
+  activity_project?: string
+  activity_unit?: string
 }
 
 /* ----------  Controller Class ---------- */
 export class AssignProjectController extends BaseController {
-  constructor (fastify: FastifyInstance) {
+  constructor(fastify: FastifyInstance) {
     super(fastify)
   }
 
   /* ---- CREATE ---- */
   async createAssignProject(
-  request: FastifyRequest<{ Body: CreateAssignProjectBody }>,
-  reply: FastifyReply
-) {
-  try {
-    const {
-      key,
-      name,
-      target,
-      unit,
-      approval_status,
-      description,
-      year,
-      performance_management_plan_type_id,
-      owner,
-      performance_management_plan_program_id,
-      note
-    } = request.body
-
-    // Tentukan status proyek berdasarkan approval_status
-    const project_status = approval_status === 0 ? 'not_started' : 'on_progress'
-
-    const result = await this.prisma.performance_Management_Plan_Projects.create({
-      data: {
+    request: FastifyRequest<{ Body: CreateAssignProjectBody }>,
+    reply: FastifyReply
+  ) {
+    try {
+      const {
         key,
         name,
         target,
         unit,
         approval_status,
-        project_status,
         description,
-        created_by: null,
         year,
         performance_management_plan_type_id,
         owner,
         performance_management_plan_program_id,
-        note
-      }
-    })
+        note,
+        personnel_target_id, // NPP target
+        personnel_from_id,   // NPP from
+        due_date,
+        activity_project,
+        activity_unit
+      } = request.body
 
-    return this.sendResponse(reply, result)
-  } catch (error) {
-    return this.handleError(error, reply, 'Failed to create assign project')
-  }
-}
+      // Tentukan status proyek berdasarkan approval_status
+      const project_status = approval_status === 0 ? 'not_started' : 'on_progress'
 
-
-  /* ---- DELETE ---- */
-  async deleteAssignProject (
-    request: FastifyRequest<{ Params: GetAssignProjectParams }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const { id } = request.params
-
-      await this.prisma.performance_Management_Plan_Projects.delete({
-        where: { id }
+      // Ambil data personnels target
+      const targetPersonnel = await this.prisma.personnels.findUnique({
+        where: { npp: personnel_target_id }
       })
-
-      return reply.status(200).send({ message: 'Assign project was deleted.' })
-    } catch (error) {
-      return this.handleError(error, reply, 'Failed to delete assign project')
+      if (!targetPersonnel) {
+      return reply.code(400).send({
+        message: `Personnel target dengan NPP ${personnel_target_id} tidak ditemukan`
+      })
     }
-  }
 
-  /* ---- GET ALL ---- */
-  async getAllAssignProjects (
-    request: FastifyRequest<{ Querystring: GetAssignProjectQuery }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const { page = 1, limit = 10, search } = request.query
-      const skip = (page - 1) * limit
-
-      const where: Prisma.Performance_Management_Plan_ProjectsWhereInput = search
-        ? {
-            OR: [
-              { key: { contains: search, mode: 'insensitive' } },
-              { name: { contains: search, mode: 'insensitive' } },
-              { unit: { contains: search, mode: 'insensitive' } },
-              { owner: { contains: search, mode: 'insensitive' } },
-              { created_by: { contains: search, mode: 'insensitive' } }
-            ]
+      // Ambil data personnels from
+      const fromPersonnel = await this.prisma.personnels.findUnique({
+        where: { npp: personnel_from_id }
+      })
+      if (!fromPersonnel) {
+      return reply.code(400).send({
+        message: `Personnel from dengan NPP ${personnel_from_id} tidak ditemukan`
+      })
+    }
+      // Transaksi prisma agar proses create project dan transaction atomik
+      const result = await this.prisma.$transaction(async (tx) => {
+        // 1. Buat project
+        const project = await tx.performance_Management_Plan_Projects.create({
+          data: {
+            key,
+            name,
+            target,
+            unit,
+            approval_status,
+            project_status,
+            description,
+            created_by: null,
+            year,
+            performance_management_plan_type_id,
+            owner,
+            performance_management_plan_program_id,
+            note
           }
-        : {}
+        })
 
-      const data = await this.prisma.performance_Management_Plan_Projects.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { created_at: 'desc' }
-      })
+        // 2. Buat transaction terkait project yang baru dibuat
+        const transaction = await tx.performance_Management_Plan_Transactions.create({
+          data: {
+            performance_management_project_id: project.id,
+            performance_management_project_parent_id: project.id, // bisa disesuaikan kalau ada parent berbeda
+            approved_status: approval_status,
+            realization: '',
+            realization_status: 0,
+            description: null,
+            personnel_target_id: targetPersonnel.id,
+            position_target_id: targetPersonnel.position_id ?? undefined,
+            personnel_from_id: fromPersonnel.id,
+            position_from_id: fromPersonnel.position_id ?? undefined,
+            due_date: new Date(due_date),
+            created_by: '',
+            year,
+            activity_project: activity_project ?? '',
+            activity_target: '',
+            activity_unit: activity_unit ?? '',
+            boss_who_creating_an_activity: '',
+            project_active_status: 'active',
+            realization_active_status: 'inactive',
+            performance_management_plan_program_id,
+            realization_boss_who_create_an_activity_percentage: 0,
+            realization_self_percentage: 0,
+            note: note ?? null
+          }
+        })
 
-      const totalCount = await this.prisma.performance_Management_Plan_Projects.count({ where })
-
-      return this.sendResponse(reply, {
-        data,
-        meta: {
-          page,
-          limit,
-          totalCount,
-          totalPages: Math.ceil(totalCount / limit)
-        }
-      })
-    } catch (error) {
-      return this.handleError(error, reply, 'Failed to retrieve assign projects')
-    }
-  }
-
-  /* ---- GET BY ID ---- */
-  async getAssignProjectById (
-    request: FastifyRequest<{ Params: GetAssignProjectParams }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const { id } = request.params
-
-      const data = await this.prisma.performance_Management_Plan_Projects.findUnique({
-        where: { id },
-        include: {
-          performance_management_plan_type: true,
-          performance_management_plan_program: true
-        }
-      })
-
-      if (!data) {
-        return reply.status(404).send({ error: 'Not Found', message: 'Assign project not found' })
-      }
-
-      return this.sendResponse(reply, data)
-    } catch (error) {
-      return this.handleError(error, reply, 'Failed to retrieve assign project')
-    }
-  }
-
-  /* ---- UPDATE ---- */
-  async editAssignProject (
-    request: FastifyRequest<{
-      Params: GetAssignProjectParams
-      Body: Partial<CreateAssignProjectBody>
-    }>,
-    reply: FastifyReply
-  ) {
-    try {
-      const { id } = request.params
-      const body = request.body
-
-      const result = await this.prisma.performance_Management_Plan_Projects.update({
-        where: { id },
-        data: {
-          key: body.key ?? undefined,
-          name: body.name ?? undefined,
-          target: body.target ?? undefined,
-          unit: body.unit ?? undefined,
-          project_status: body.project_status ?? undefined,
-          approval_status: body.approval_status ?? undefined,
-          description: body.description ?? undefined,
-          created_by: body.created_by ?? undefined,
-          year: body.year ?? undefined,
-          performance_management_plan_type_id:
-            body.performance_management_plan_type_id ?? undefined,
-          owner: body.owner ?? undefined,
-          performance_management_plan_program_id:
-            body.performance_management_plan_program_id ?? undefined,
-          note: body.note ?? undefined
-        }
+        return { project, transaction }
       })
 
       return this.sendResponse(reply, result)
     } catch (error) {
-      return this.handleError(error, reply, 'Failed to update assign project')
+      return this.handleError(error, reply, 'Failed to create assign project')
     }
   }
 }
