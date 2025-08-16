@@ -29,7 +29,7 @@ import programRoutes from './routes/performance.management.program.routes'
 import planProjectRoutes from './routes/plan-project.routes'
 import assignProjectRoutes from './routes/assign-project.routes'
 import unitsRoutes from './routes/units.routes'
-import positionRoutes from './routes/units.routes'
+import positionRoutes from './routes/positions.routes'
 
 
 // Environmental schema

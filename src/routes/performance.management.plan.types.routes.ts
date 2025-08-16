@@ -18,19 +18,19 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
     search?: string;
   }
   
-  server.get<{
+   server.get<{
     Querystring: GetPlanTypesQuery
   }>('/', {
-      // Modifikasi hook untuk membiarkan superuser lewat
       preHandler: async (request, reply) => {
-        // Superuser bypass checks
+        // Superuser bypass checks (tetap ada)
         if (request.user && request.user.is_superuser === true) {
           fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
           return;
         }
         
-        // Regular users go through permission check
+        // Regular users go through permission check, including ADMIN
         await new Promise<void>((resolve, reject) => {
+          // Hanya perlu CAN_READ_PLAN_TYPE untuk akses melihat daftar
           fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_READ_PLAN_TYPE)(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
@@ -46,28 +46,28 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
           limit: Type.Optional(Type.Number({ minimum: 1, maximum: 100 })),
           search: Type.Optional(Type.String())
         }),
-      response: {
-        200: Type.Object({
-          data: Type.Array(
-            Type.Object({
-                id: Type.String(),
-                name: Type.String(),
-                description: Type.String(),
-                created_at: Type.String(),
+        response: {
+          200: Type.Object({
+            data: Type.Array(
+              Type.Object({
+                  id: Type.String(),
+                  name: Type.String(),
+                  description: Type.String(),
+                  created_at: Type.String(),
+              })
+            ),
+            meta: Type.Object({
+              page: Type.Number(),
+              limit: Type.Number(),
+              totalCount: Type.Number(),
+              totalPages: Type.Number()
             })
-          ),
-          meta: Type.Object({
-            page: Type.Number(),
-            limit: Type.Number(),
-            totalCount: Type.Number(),
-            totalPages: Type.Number()
           })
-        })
-      }
+        }
     }
-  }, planTypesController.getAllPlanTypes.bind(planTypesController))
+  }, planTypesController.getAllPlanTypes.bind(planTypesController));
 
-  // Get personnel by ID
+  // Get plan type by ID
   interface GetPlanTypeParams {
     id: string;
   }
@@ -75,16 +75,16 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
   server.get<{
     Params: GetPlanTypeParams
   }>('/:id', {
-      // Modifikasi hook untuk membiarkan superuser lewat
       preHandler: async (request, reply) => {
-        // Superuser bypass checks
+        // Superuser bypass checks (tetap ada)
         if (request.user && request.user.is_superuser === true) {
-          fastify.log.info(`Superuser ${request.user.npp} accessing plan types list, bypassing permission check`);
+          fastify.log.info(`Superuser ${request.user.npp} accessing single plan type, bypassing permission check`);
           return;
         }
         
-        // Regular users go through permission check
+        // Regular users go through permission check, including ADMIN
         await new Promise<void>((resolve, reject) => {
+          // Hanya perlu CAN_READ_PLAN_TYPE untuk akses melihat detail
           fastify.checkPermission(Resource.PLAN_TYPES, Permission.CAN_READ_PLAN_TYPE)(request, reply, (err) => {
             if (err) reject(err);
             else resolve();
@@ -107,7 +107,7 @@ const planTypeRoutes: FastifyPluginAsync = async (fastify) => {
         })
       },
     }
-  }, planTypesController.GetPlanTypesById.bind(planTypesController))
+  }, planTypesController.GetPlanTypesById.bind(planTypesController));
 
   interface CreatePlanTypeBody {
     name: string

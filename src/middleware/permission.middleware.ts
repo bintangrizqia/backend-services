@@ -1,6 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import fp from 'fastify-plugin'
-import { Permission, Resource } from '@prisma/client'
+// Pastikan ini diimpor dari lokasi yang benar di proyek Anda,
+// biasanya generated oleh Prisma atau file enum manual Anda.
+import { Permission, Resource } from '@prisma/client' 
 
 // Define role mapping based on eselon
 const getRoleFromEselon = (eselon: number, isSuperuser: boolean): string => {
@@ -18,50 +20,48 @@ const getRoleFromEselon = (eselon: number, isSuperuser: boolean): string => {
 };
 
 // Define permissions based on role
+// Pastikan semua nilai dalam array adalah ENUM Permission, bukan string literal
 const ROLE_PERMISSIONS = {
   'SUPER_ADMIN': {
     // Super Admin - Full access to everything
-    USER: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    PROGRAM: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    PLAN_TYPE: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    PLAN_PROJECT: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    ASSIGN_PROJECT: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    OVERVIEW: ['READ'],
-    PERSONNEL: ['READ'], // For assignment purposes
-    PROFILE: ['READ', 'UPDATE'] // Can edit own profile
+    USER: [Permission.CAN_CREATE_PERSONNEL, Permission.CAN_READ_PERSONNEL, Permission.CAN_UPDATE_PERSONNEL, Permission.CAN_DELETE_PERSONNEL],
+    PROGRAM: [Permission.CAN_CREATE_PROGRAM, Permission.CAN_READ_PROGRAM, Permission.CAN_UPDATE_PROGRAM, Permission.CAN_DELETE_PROGRAM],
+    PLAN_TYPES: [Permission.CAN_CREATE_PLAN_TYPE, Permission.CAN_READ_PLAN_TYPE, Permission.CAN_UPDATE_PLAN_TYPE, Permission.CAN_DELETE_PLAN_TYPE],
+    PLAN_PROJECT: [Permission.CAN_CREATE_PROJECT, Permission.CAN_READ_PROJECT, Permission.CAN_UPDATE_PROJECT, Permission.CAN_DELETE_PROJECT],
+    ASSIGN_PROJECT: [Permission.CAN_CREATE_PROJECT, Permission.CAN_READ_PROJECT, Permission.CAN_UPDATE_PROJECT], 
+    OVERVIEW: [Permission.CAN_READ_PERMISSION],
+    PERSONNEL: [Permission.CAN_READ_PERSONNEL],
+    PROFILE: [Permission.CAN_READ_PERSONNEL, Permission.CAN_UPDATE_PERSONNEL]
   },
   'ADMIN': {
-    // Direksi - Admin terbatas (tidak bisa kelola user)
-    USER: [], // Tidak bisa kelola user
-    PROGRAM: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    PLAN_TYPE: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    PLAN_PROJECT: ['CREATE', 'READ', 'UPDATE', 'DELETE'],
-    ASSIGN_PROJECT: ['CREATE', 'READ', 'UPDATE', 'DELETE'], // Bisa assign ke eselon 1
-    OVERVIEW: ['READ'],
-    PERSONNEL: ['READ'], // Bisa lihat personnel untuk assignment
-    PROFILE: ['READ', 'UPDATE'] // Can edit own profile
+    USER: [],
+    PROGRAM: [Permission.CAN_CREATE_PROGRAM, Permission.CAN_READ_PROGRAM, Permission.CAN_UPDATE_PROGRAM, Permission.CAN_DELETE_PROGRAM],
+    PLAN_TYPES: [Permission.CAN_READ_PLAN_TYPE],
+    PLAN_PROJECT: [Permission.CAN_READ_PROJECT, Permission.CAN_CREATE_PROJECT, Permission.CAN_UPDATE_PROJECT, Permission.CAN_DELETE_PROJECT], // ADMIN bisa CRUD Project
+    ASSIGN_PROJECT: [Permission.CAN_CREATE_PROJECT, Permission.CAN_READ_PROJECT, Permission.CAN_UPDATE_PROJECT], // ADMIN bisa assign ke eselon 1
+    OVERVIEW: [Permission.CAN_READ_PERMISSION],
+    PERSONNEL: [Permission.CAN_READ_PERSONNEL],
+    PROFILE: [Permission.CAN_READ_PERSONNEL, Permission.CAN_UPDATE_PERSONNEL]
   },
   'MANAGER': {
-    // Eselon 1 & 2 - Bisa cascade assignment
     USER: [],
-    PROGRAM: ['READ'], // Hanya lihat, tidak bisa add/edit/delete
-    PLAN_TYPE: [],
-    PLAN_PROJECT: [],
-    ASSIGN_PROJECT: ['READ', 'UPDATE'], // Bisa cascade/menurunkan assignment
-    OVERVIEW: ['READ'],
-    PERSONNEL: ['READ'], // Perlu lihat personnel untuk penurunan
-    PROFILE: ['READ', 'UPDATE'] // Can edit own profile
+    PROGRAM: [Permission.CAN_READ_PROGRAM],
+    PLAN_TYPES: [], // MANAGER harus bisa READ Plan Type untuk memilih di form assign
+    PLAN_PROJECT: [Permission.CAN_READ_PROJECT], 
+    ASSIGN_PROJECT: [Permission.CAN_READ_PROJECT, Permission.CAN_UPDATE_PROJECT], // Manager bisa READ dan juga UPDATE (assign/reassign) project
+    OVERVIEW: [Permission.CAN_READ_PERMISSION],
+    PERSONNEL: [Permission.CAN_READ_PERSONNEL], // MANAGER perlu bisa READ PERSONNEL untuk fitur assign
+    PROFILE: [Permission.CAN_READ_PERSONNEL, Permission.CAN_UPDATE_PERSONNEL]
   },
   'STAFF': {
-    // Eselon 3,4,5 - View only
     USER: [],
     PROGRAM: [],
-    PLAN_TYPE: [],
-    PLAN_PROJECT: [],
-    ASSIGN_PROJECT: ['READ'], // Hanya lihat assignment
-    OVERVIEW: ['READ'],
-    PERSONNEL: [], // Tidak perlu lihat personnel lain
-    PROFILE: ['READ', 'UPDATE'] // Can edit own profile
+    PLAN_TYPES: [],
+    PLAN_PROJECT: [Permission.CAN_READ_PROJECT], // STAFF hanya bisa READ Project (jika mereka punya project)
+    ASSIGN_PROJECT: [Permission.CAN_READ_PROJECT],
+    OVERVIEW: [Permission.CAN_READ_PERMISSION],
+    PERSONNEL: [],
+    PROFILE: [Permission.CAN_READ_PERSONNEL, Permission.CAN_UPDATE_PERSONNEL]
   }
 } as const;
 
@@ -157,58 +157,54 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
    * Check if a user has a specific permission for a resource
    */
   const hasPermission = async (
-  request: FastifyRequest,
-  resource: Resource,
-  permission: Permission | Permission[]
-): Promise<boolean> => {
-  try {
-    fastify.log.info(`===== ESELON PERMISSION CHECK =====`);
-    fastify.log.info(`Resource: ${resource}, Permission: ${permission}`);
+    request: FastifyRequest,
+    resource: Resource,
+    permission: Permission | Permission[] // Ini menerima nilai enum
+  ): Promise<boolean> => {
+    try {
+      fastify.log.info(`===== PERMISSION CHECK DEBUG =====`);
+      fastify.log.info(`User NPP: ${request.user?.npp}, Eselon: ${request.user?.eselon}, Superuser: ${request.user?.is_superuser}`);
+      const userRole = getUserRole(request);
+      fastify.log.info(`Detected Role: ${userRole}`);
+      fastify.log.info(`Resource: ${resource}, Requested Permission: ${JSON.stringify(permission)}`);
 
-    if (!request.user) {
-      fastify.log.warn('No user found in request, denying permission');
+      // Get permissions for this role
+      const rolePermissions = ROLE_PERMISSIONS[userRole as keyof typeof ROLE_PERMISSIONS];
+
+      if (!rolePermissions) {
+        fastify.log.warn(`Unknown role: ${userRole}`);
+        return false;
+      }
+      fastify.log.info(`Permissions defined for ${userRole}: ${JSON.stringify(rolePermissions)}`);
+
+
+      // Check if resource exists in role permissions
+      // Menggunakan `as any` untuk mengakses properti dengan string literal
+      const resourcePermissions = (rolePermissions as any)[resource];
+
+      if (!resourcePermissions) {
+        fastify.log.info(`Resource ${resource} not defined for role ${userRole}`);
+        return false;
+      }
+      fastify.log.info(`Specific permissions for ${resource} for ${userRole}: ${JSON.stringify(resourcePermissions)}`);
+
+
+      // Check specific permissions
+      const permissionsToCheck = Array.isArray(permission) ? permission : [permission];
+      
+      // Membandingkan nilai enum secara langsung (resourcePermissions adalah array enum)
+      const hasRequiredPermission = permissionsToCheck.some(p =>
+        (resourcePermissions as readonly Permission[]).includes(p) 
+      );
+
+      fastify.log.info(`Final decision: ${hasRequiredPermission ? 'GRANTED' : 'DENIED'}`);
+      return hasRequiredPermission;
+
+    } catch (error) {
+      fastify.log.error('Permission check failed (exception caught):', error);
       return false;
     }
-
-    const userRole = getUserRole(request);
-    const userEselon = request.user.eselon || 5;
-
-    fastify.log.info(`User ${request.user.npp} - Eselon: ${userEselon}, Role: ${userRole}`);
-
-    // Get permissions for this role
-    const rolePermissions = ROLE_PERMISSIONS[userRole as keyof typeof ROLE_PERMISSIONS];
-
-    if (!rolePermissions) {
-      fastify.log.warn(`Unknown role: ${userRole}`);
-      return false;
-    }
-
-    // Check if resource exists in role permissions
-    // Gunakan `(rolePermissions as any)` untuk memberitahu TypeScript agar tidak terlalu ketat
-    const resourcePermissions = (rolePermissions as any)[resource];
-
-    if (!resourcePermissions) {
-      fastify.log.info(`Resource ${resource} not defined for role ${userRole}`);
-      return false;
-    }
-
-    // Check specific permissions
-    const permissions = Array.isArray(permission) ? permission : [permission];
-    
-    // Perbaiki baris ini. Kita perlu mengkonversi resourcePermissions ke tipe yang bisa diakses
-    const hasRequiredPermission = permissions.some(p =>
-      // Konversi ke `string[]` akan menghasilkan error, jadi kita gunakan `as any as string[]`
-      (resourcePermissions as readonly string[]).includes(p as string)
-    );
-
-    fastify.log.info(`Permission check result: ${hasRequiredPermission}`);
-    return hasRequiredPermission;
-
-  } catch (error) {
-    fastify.log.error('Permission check failed:', error);
-    return false;
-  }
-};
+  };
 
   /**
    * Create a hook function that checks permissions and can be used with preHandler
@@ -233,7 +229,8 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
       
       const userRole = getUserRole(request);
       
-      fastify.log.info(`Permission check for ${resource}.${permission} - User: ${request.user.npp} (${userRole})`);
+      // Perhatikan logging di sini, nilai 'permission' sudah merupakan string literal dari enum
+      fastify.log.info(`Permission check for ${resource}.${permission} - User: ${request.user.npp} (${userRole})`); 
       
       hasPermission(request, resource, permission)
         .then(allowed => {
@@ -241,10 +238,11 @@ const permissionMiddleware = fp(async (fastify: FastifyInstance) => {
             const err = new Error('Permission denied');
             fastify.log.warn(`Permission denied: User ${request.user.npp} (${userRole}) tried to access ${resource}`);
             
+            // Perhatikan bagaimana pesan error dibentuk, gunakan string literal dari permission
             reply.code(403).send({
               statusCode: 403,
               error: 'Forbidden',
-              message: `Access denied. Your role (${userRole}) does not have permission to ${permission} ${resource}`
+              message: `Access denied. Your role (${userRole}) does not have permission to ${Array.isArray(permission) ? permission.join(', ') : permission} ${resource}`
             });
             
             return done(err);

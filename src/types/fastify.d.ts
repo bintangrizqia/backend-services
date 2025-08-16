@@ -1,19 +1,17 @@
-import 'fastify'
+import 'fastify';
 
 declare module 'fastify' {
-  interface FastifyRequest {
-    user?: any
-  }
-  
-  interface FastifyInstance {
-    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
-    generateToken: (payload: object) => string
+  interface FastifyUser {
+    npp: string;
+    eselon?: number;
+    is_superuser?: boolean;
+    email?: string;
+    name?: string;
   }
 
-  interface RouteOptions {
-    config?: {
-      authenticated?: boolean
-      [key: string]: any
-    }
+  interface FastifyRequest {
+    user?: FastifyUser;
+    permissions?: Record<string, string[]>; 
+    permissionError?: boolean; 
   }
 }

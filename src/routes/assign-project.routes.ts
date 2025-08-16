@@ -21,7 +21,7 @@ const assignProjectRoutes: FastifyPluginAsync = async (fastify) => {
             key: { type: 'string' },
             name: { type: 'string' },
             target: { type: 'string' },
-            unit: { type: 'string' },
+            unit: { type: 'string' }, 
             description: { type: 'string' },
             year: { type: 'number' },
             performance_management_plan_type_id: { type: 'string' },
