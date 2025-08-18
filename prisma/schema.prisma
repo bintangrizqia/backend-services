@@ -256,7 +256,7 @@ model Performance_Management_Plan_Types {
 
 model Performance_Management_Plan_Projects {
   id                                     String  @id @default(cuid())
-  key                                    String
+  key                                    String   
   name                                   String
   target                                 String
   unit                                   String

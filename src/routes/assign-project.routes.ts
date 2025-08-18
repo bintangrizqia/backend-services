@@ -29,7 +29,7 @@ const assignProjectRoutes: FastifyPluginAsync = async (fastify) => {
             performance_management_plan_program_id: { type: 'string' },
             note: { type: 'string' },
             personnel_target_id: { type: 'string' },
-            due_date: { type: 'string', format: 'date-time' },
+            due_date: { type: 'string', format: 'date' },
             activity_project: { type: 'string' },
             activity_unit: { type: 'string' }
           },
@@ -51,44 +51,44 @@ const assignProjectRoutes: FastifyPluginAsync = async (fastify) => {
     controller.createAssignProject.bind(controller)
   )
 
-/* ----------  UPDATE ---------- */
-  fastify.put<{ Params: { id: string }, Body: UpdateAssignProjectBody }>(
-    '/:id',
-    {
-      preHandler: [fastify.authenticate],
-      schema: {
-        tags: ['assign-project'],
-        description: 'Update existing assign project',
-        params: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' }
-          },
-          required: ['id']
-        },
-        body: {
-          type: 'object',
-          properties: {
-            key: { type: 'string' },
-            name: { type: 'string' },
-            target: { type: 'string' },
-            unit: { type: 'string' },
-            description: { type: 'string' },
-            year: { type: 'number' },
-            performance_management_plan_type_id: { type: 'string' },
-            owner: { type: 'string' },
-            performance_management_plan_program_id: { type: 'string' },
-            note: { type: 'string' },
-            personnel_target_id: { type: 'array', items: { type: 'string' } },
-            due_date: { type: 'string', format: 'date-time' },
-            activity_project: { type: 'string' },
-            activity_unit: { type: 'string' }
-          }
+      /* ---------- ROUTES ---------- */
+fastify.put<{ Params: { id: string }, Body: UpdateAssignProjectBody }>(
+  '/:id',
+  {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ['assign-project'],
+      description: 'Update existing assign project',
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+        required: ['id']
+      },
+      body: {
+        type: 'object',
+        properties: {
+          key: { type: 'string' },
+          name: { type: 'string' },
+          target: { type: 'string' },
+          unit: { type: 'string' },
+          description: { type: 'string' },
+          year: { type: 'number' },
+          performance_management_plan_type_id: { type: 'string' },
+          owner: { type: 'string' },
+          performance_management_plan_program_id: { type: 'string' },
+          note: { type: 'string' },
+          personnel_target_id: { type: 'array', items: { type: 'string' } },
+          due_date: { type: 'string', format: 'date-time' },
+          activity_project: { type: 'string' },
+          activity_unit: { type: 'string' },
+          realization_boss_who_create_an_activity_percentage: { type: 'number' },
+          realization_self_percentage: { type: 'number' }
         }
       }
-    },
-    controller.updateAssignProject.bind(controller)
-  )
+    }
+  },
+  controller.updateAssignProject.bind(controller)
+)
 
   /* ----------  READ LIST ---------- */
   fastify.get(
@@ -264,8 +264,9 @@ fastify.get(
       },
     },
   },
-  controller.getPrograms.bind(controller)
+  controller.getTreeProgram.bind(controller)
 )
+
 
  /* ---------- READ KPI PROJECT TRANSACTIONS ---------- */
   fastify.get(
