@@ -138,6 +138,7 @@ fastify.put<{ Params: { id: string }, Body: UpdateAssignProjectBody }>(
             items: {
               type: "object",
               properties: {
+                id: { type: "string" }, 
                 status: { type: "string" },
                 key: { type: "string" },
                 project: { type: "string" },
@@ -154,6 +155,46 @@ fastify.put<{ Params: { id: string }, Body: UpdateAssignProjectBody }>(
     },
     controller.getAssignTable.bind(controller)
   )
+
+  /* ---------- READ ASSIGN TABLE BY ID ---------- */
+fastify.get<{ Params: { id: string } }>(
+  "/assign-table/:id",
+  {
+    preHandler: [fastify.authenticate],
+    schema: {
+      tags: ["assign-project"],
+      description: "Get assign project table detail by id",
+      params: {
+        type: "object",
+        properties: {
+          id: { type: "string" }
+        },
+        required: ["id"]
+      },
+      response: {
+        200: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            status: { type: "string" },
+            key: { type: "string" },
+            project: { type: "string" },
+            program: { type: "string" },
+            information: { type: "string" },
+            assign_to: { type: "string" },
+            target: { type: "string" },
+            unit: { type: "string" },
+            due_date: { type: "string" },
+            created_by: { type: "string" },
+            year: { type: "number" }
+          }
+        }
+      }
+    }
+  },
+  controller.getAssignTableById.bind(controller)
+)
+
 
   /* ---------- READ TREE DIVISION ---------- */
 fastify.get(

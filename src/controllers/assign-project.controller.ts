@@ -501,31 +501,160 @@ async getAssignProjectById(
 /* ---- READ ASSIGN TABEL ---- */
 async getAssignTable(req: FastifyRequest, reply: FastifyReply) {
   try {
-    const transactions =
-      await this.prisma.performance_Management_Plan_Transactions.findMany({
-        include: {
-          performance_management_project: true,
-          personnel_target: true,
+    const transactions = await this.prisma.performance_Management_Plan_Transactions.findMany({
+      include: {
+        // Relasi ke project
+        performance_management_project: {
+          include: {
+            // Relasi program dari project
+            performance_management_plan_program: true,
+            performance_management_plan_type: true
+          }
         },
-      });
+        // Relasi personnel target
+        personnel_target: true,
+        // Relasi position target
+        position_target: {
+          include: {
+            unit: true // untuk mendapatkan nama divisi/unit
+          }
+        },
+        // Relasi personnel from
+        personnel_from: true,
+        // Relasi position from
+        position_from: {
+          include: {
+            unit: true
+          }
+        }
+      },
+    });
 
-    const formatted = transactions.map((t) => ({
-      status:
-        t.performance_management_project?.project_status ??
-        t.approved_status ??
-        "-",                                                              // langsung pakai status dari project
-      key: t.performance_management_project?.key || "-",                  // Key
-      project: t.performance_management_project?.name || "-",             // Project
-      program: t.performance_management_plan_program_id || "-",           // Program (sementara ID)
-      information: t.description || "-",                                  // Information
-      assign_to: t.personnel_target?.name || "-",                         // Assign To
-      target: t.activity_target || "-",                                   // Target
-      unit: t.activity_unit || "-",                                       // Unit
+    // Group transactions by project to avoid duplicates dan aggregate assignees
+    const projectMap = new Map();
+    
+    transactions.forEach((t) => {
+      const project = t.performance_management_project;
+      if (!project) return;
+      
+      const projectId = project.id;
+      
+      if (!projectMap.has(projectId)) {
+        projectMap.set(projectId, {
+          project: project,
+          transaction: t,
+          assignees: [],
+          assigneeDetails: []
+        });
+      }
+      
+      // Tambahkan assignee ke list
+      if (t.personnel_target?.name) {
+        const entry = projectMap.get(projectId);
+        if (!entry.assignees.includes(t.personnel_target.name)) {
+          entry.assignees.push(t.personnel_target.name);
+          entry.assigneeDetails.push({
+            name: t.personnel_target.name,
+            npp: t.personnel_target.npp,
+            position: t.position_target?.name || '-',
+            unit: t.position_target?.unit?.name || '-'
+          });
+        }
+      }
+    });
+
+    const formatted = Array.from(projectMap.values()).map(({ project, transaction, assignees, assigneeDetails }) => ({
+      id: project?.id || transaction?.performance_management_project_id || project?.key,
+      status: project.project_status || "Not Started", // Status project
+      key: project.key || "-", // Key project
+      project: project.name || "-", // Nama project
+      program: project.performance_management_plan_program?.name || "-", // NAMA program, bukan ID
+      information: project.description || transaction.description || "-", // Informasi/deskripsi
+      assign_to: assignees.length > 0 ? assignees.join("; ") : "-", // Nama assignees yang digabung
+      target: project.target || transaction.activity_target || "-", // Target dari project
+      unit: project.unit || transaction.activity_unit || "-", // Unit dari project
+      // Data tambahan untuk detail jika diperlukan
+      assign_details: assigneeDetails, // Detail lengkap assignees
+      program_type: project.performance_management_plan_type?.name || "-", // Tipe program
+      due_date: transaction.due_date ? transaction.due_date.toISOString().split('T')[0] : "-", // Due date
+      created_by: transaction.personnel_from?.name || "-", // Pembuat project
+      year: project.year || new Date().getFullYear() // Tahun project
     }));
 
     return this.sendResponse(reply, formatted);
   } catch (error) {
-    return this.handleError(error, reply, "Failed to get transaction table");
+    return this.handleError(error, reply, "Failed to get assign table");
+  }
+}
+
+/* ---- READ ASSIGN TABLE BY ID ---- */
+async getAssignTableById(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { id } = request.params;
+
+    const transactions = await this.prisma.performance_Management_Plan_Transactions.findMany({
+      where: { performance_management_project_id: id },
+      include: {
+        performance_management_project: {
+          include: {
+            performance_management_plan_program: true,
+            performance_management_plan_type: true,
+          },
+        },
+        personnel_target: true,
+        position_target: { include: { unit: true } },
+        personnel_from: true,
+        position_from: { include: { unit: true } },
+      },
+    });
+
+    if (!transactions || transactions.length === 0) {
+      return reply.status(404).send({ message: "Assign project not found" });
+    }
+
+    const project = transactions[0].performance_management_project;
+
+    // format sama kayak di getAssignTable
+    const assignees: string[] = [];
+    const assigneeDetails: any[] = [];
+
+    transactions.forEach((t) => {
+      if (t.personnel_target?.name && !assignees.includes(t.personnel_target.name)) {
+        assignees.push(t.personnel_target.name);
+        assigneeDetails.push({
+          name: t.personnel_target.name,
+          npp: t.personnel_target.npp,
+          position: t.position_target?.name || "-",
+          unit: t.position_target?.unit?.name || "-",
+        });
+      }
+    });
+
+    const formatted = {
+      id: project?.id || id,
+      status: project?.project_status || "Not Started",
+      key: project?.key || "-",
+      project: project?.name || "-",
+      program: project?.performance_management_plan_program?.name || "-",
+      information: project?.description || transactions[0].description || "-",
+      assign_to: assignees.length > 0 ? assignees.join("; ") : "-",
+      target: project?.target || transactions[0].activity_target || "-",
+      unit: project?.unit || transactions[0].activity_unit || "-",
+      assign_details: assigneeDetails,
+      program_type: project?.performance_management_plan_type?.name || "-",
+      due_date: transactions[0].due_date
+        ? transactions[0].due_date.toISOString().split("T")[0]
+        : "-",
+      created_by: transactions[0].personnel_from?.name || "-",
+      year: project?.year || new Date().getFullYear(),
+    };
+
+    return this.sendResponse(reply, formatted);
+  } catch (error) {
+    return this.handleError(error, reply, "Failed to get assign table by id");
   }
 }
 
